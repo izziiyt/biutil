@@ -7,7 +7,8 @@ scalaVersion := "2.11.6"
 organization := "izzii"
 
 libraryDependencies  ++= Seq(
-  "org.scalatest" % "scalatest_2.11" % "2.1.3" % "test"
+  "org.scalatest" % "scalatest_2.11" % "2.1.3" % "test",
+  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
 )
 
 resolvers ++= Seq(

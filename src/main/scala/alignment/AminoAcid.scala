@@ -1,4 +1,10 @@
-abstract class AminoAcid
+package alignment
+
+abstract class AminoAcid{
+
+  def toChar:Char = toString.head
+
+}
 
 object AminoAcid{
 
@@ -29,13 +35,9 @@ object AminoAcid{
 
   private val values = Array(A,R,N,D,C,Q,E,G,H,I,L,K,M,F,P,S,T,W,Y,V,Z,X)
 
-  private val acids: Map[String,AminoAcid] = values.map{case x => x.toString -> x}.toMap
+  private val acids:Map[Char,AminoAcid] = values.flatMap(x => List(x.toChar -> x,x.toChar.toLower -> x)).toMap
 
-  def toChar = toString.toCharArray.head
-
-  def fromChar(c:Char) = fromString(c.toString)
-
-  def fromString(s: String): AminoAcid = acids.get(s) match {
+  def fromChar(c: Char):AminoAcid = acids.get(c) match {
     case Some(x) => x
     case None => X
   }

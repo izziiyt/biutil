@@ -1,4 +1,10 @@
-abstract class Base
+package alignment
+
+abstract class Base{
+
+  def toChar:Char = toString.head
+  def toInt:Int = Base.toInt(this)
+}
 
 object Base{
 
@@ -11,9 +17,7 @@ object Base{
   case object N extends Base
 
   val fromInt:Int => Base = Array(A,T,C,G,N)
-
   val toInt:Base => Int = Map(A -> 0,T -> 1,C -> 2, G -> 3,N -> 4)
-
 
   val fromChar:Char => Base = {
     case 'a' | 'A' => A
