@@ -1,0 +1,19 @@
+TTT F Phe	TTC F Phe	TTA L Leu	TTG L Leu	TTN X Unk
+TCT S Ser	TCC S Ser	TCA S Ser	TCG S Ser	TCN S Ser
+TAT Y Tyr	TAC Y Tyr	TAA Z Ter	TAG Z Ter	TAN X Unk
+TGT C Cys	TGC C Cys	TGA Z Ter	TGG W Trp	TGN X Unk
+
+CTT L Leu	CTC L Leu	CTA L Leu	CTG L Leu	CTN L Leu
+CCT P Pro	CCC P Pro	CCA P Pro	CCG P Pro	CCN P Pro
+CAT H His	CAC H His	CAA Q Gln	CAG Q Gln	CAN X Unk
+CGT R Arg	CGC R Arg	CGA R Arg	CGG R Arg	CGN R Arg
+
+ATT I Ile	ATC I Ile	ATA I Ile	ATG M Met	ATN X Unk
+ACT T Thr	ACC T Thr	ACA T Thr	ACG T Thr	ACN T Thr
+AAT N Asn	AAC N Asn	AAA K Lys	AAG K Lys	AAN X Unk
+AGT S Ser	AGC S Ser	AGA R Arg	AGG R Arg	AGN X Unk
+
+GTT V Val	GTC V Val	GTA V Val	GTG V Val	GTN V Val
+GCT A Ala	GCC A Ala	GCA A Ala	GCG A Ala	GCN A Ala
+GAT D Asp	GAC D Asp	GAA E Glu	GAG E Glu	GAN X Unk
+GGT G Gly	GGC G Gly	GGA G Gly	GGG G Gly	GGN G Gly

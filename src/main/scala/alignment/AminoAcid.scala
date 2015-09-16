@@ -3,7 +3,6 @@ package alignment
 abstract class AminoAcid{
 
   def toChar:Char = toString.head
-
 }
 
 object AminoAcid{
@@ -31,7 +30,16 @@ object AminoAcid{
   case object Y extends AminoAcid
   case object V extends AminoAcid
   case object Z extends AminoAcid
-  case object X extends AminoAcid
+  case object X extends AminoAcid {
+    override def equals(other: Any) = false
+  }
+
+  override def equals(other:Any) = other match {
+    case X => false
+    case AminoAcid => this.equals(other)
+    case _ => false
+  }
+
 
   private val values = Array(A,R,N,D,C,Q,E,G,H,I,L,K,M,F,P,S,T,W,Y,V,Z,X)
 

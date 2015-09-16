@@ -5,7 +5,16 @@ import alignment.Base._
 import scala.collection._
 import scala.util.parsing.combinator.JavaTokenParsers
 
-case class CodonTable(is4Fold:Map[Codon,Boolean],transcript:Map[Codon,AminoAcid])
+case class CodonTable(is4d:Map[Codon,Boolean],cdn2aa:Map[Codon,AminoAcid]){
+  def transcript(cdn: Codon): AminoAcid = cdn2aa.get(cdn) match {
+    case Some(x) => x
+    case None => AminoAcid.X
+  }
+  def is4Fold(cdn: Codon): Boolean = is4d.get(cdn) match {
+    case Some(x) => x
+    case None => false
+  }
+}
 
 object CodonTable extends CodonTableParser{
 
@@ -22,14 +31,14 @@ object CodonTable extends CodonTableParser{
     new CodonTable(is4Fold,c2a)
   }
 
-  protected def addOnes(f:Base,s:Base):Array[Codon] = bases.map(Codon(f,s,_))
+  protected def addOnes(f:Base,s:Base):Array[Codon] = (bases :+ N).map(Codon(f,s,_))
 }
 
 class CodonTableParser extends JavaTokenParsers {
 
   def block:Parser[Block] = cdn~aa<~""".{3}""".r ^^ {case x~y => Block(x,y)}
 
-  def cdn:Parser[Codon] = """[ATUCG]{3}""".r ^^ {Codon(_)}
+  def cdn:Parser[Codon] = """[ATUCGN]{3}""".r ^^ {Codon(_)}
 
   def aa:Parser[AminoAcid] = """.""".r ^^ {case x => AminoAcid.fromChar(x.head)}
 
