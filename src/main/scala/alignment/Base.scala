@@ -1,9 +1,10 @@
 package alignment
 
 trait Base{
-  def toChar:Char = toString.head
-  def toInt:Int = Base.toInt(this)
+  def toChar: Char = toString.head
+  def toInt: Int = Base.toInt(this)
   def isN: Boolean = false
+  def isGap: Boolean = false
 }
 
 object Base{
@@ -14,14 +15,15 @@ object Base{
   case object C extends Base
   case object G extends Base
   case object T extends Base
-  case object N extends Base{
+  case object N extends Base {
     override def isN = true
+    override def equals(that: Any) = false
   }
 
-  val fromInt:Int => Base = Array(A,C,G,T,N)
-  val toInt:Base => Int = Map(A -> 0,C -> 1,G -> 2, T -> 3,N -> 4)
+  val fromInt: Int => Base = Array(A, C, G, T, N)
+  val toInt: Base => Int = Map(A -> 0, C -> 1, G -> 2, T -> 3, N -> 4)
 
-  val fromChar:Char => Base = {
+  val fromChar: Char => Base = {
     case 'a' | 'A' => A
     case 't' | 'T' => T
     case 'c' | 'C' => C

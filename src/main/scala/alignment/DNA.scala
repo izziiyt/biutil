@@ -42,7 +42,7 @@ object DNA{
     new DNA(groups,buf.length)
   }
 
-  def fromString(s: String): DNA = DNA.fromSeq(s.map(Base fromChar))
+  def fromString(s: String): DNA = DNA.fromSeq(s.map(Base.fromChar))
 
   def apply(bases: Base*): DNA = fromSeq(bases)
 

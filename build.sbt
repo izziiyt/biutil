@@ -1,17 +1,30 @@
-name := "biutil"
+import sbt.Keys._
 
-version := "0.1"
-
-scalaVersion := "2.11.5"
-
-organization := "izzii"
-
-libraryDependencies  ++= Seq(
-  "org.scalatest" % "scalatest_2.11" % "2.1.3" % "test",
-  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
+lazy val commonSettings = Seq(
+  organization := "izzii",
+  version := "1.0.0",
+  scalaVersion := "2.10.5"
 )
 
-resolvers ++= Seq(
-  "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
-  "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
+lazy val root = (project in file(".")).
+  settings(commonSettings: _*).
+  settings(
+    name := "fdur",
+    libraryDependencies  ++= Seq(
+      "org.scalatest" % "scalatest_2.10" % "2.1.3" % "test",
+      "org.scalanlp" %% "breeze" % "0.11.2"
+      )
+  ).
+  settings(
+    resolvers ++= Seq(
+      "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
+      "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
+    )
+  )
+
+scalacOptions ++= Seq(
+  "-optimize",
+  "-deprecation",
+  "-feature",
+  "-unchecked"
 )
