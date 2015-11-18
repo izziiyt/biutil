@@ -1,25 +1,19 @@
-package wig
+package biformat
 
 import java.io.FileInputStream
 import java.util.zip.GZIPInputStream
-
-import wig.WigIterator.{FixedStep, VariableStep, WigUnit}
-
+import WigIterator.WigUnit
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.io.BufferedSource
 
-object Wig {
-  val DefaultBufferSize = 2048
-}
+class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.BlockIterator[WigUnit] {
 
-class WigIterator protected (val its: Iterator[WigUnit]) extends Iterable[WigUnit] with TraversableOnce[WigUnit] {
-  def iterator = its
+  override def merge: WigIterator = new WigIterator(mergedIterator)
 
-  //override def withFilter(f: WigUnit => Boolean): WigIterator = new WigIterator(its.withFilter(f))
+  override def append(x: WigUnit, y: WigUnit) = WigUnit.append(x,y)
 
-  def merge: WigIterator = new WigIterator (
+  /*def merge: WigIterator = new WigIterator (
     new Iterator[WigUnit] {
 
       val buf = new ArrayBuffer[Double]()
@@ -27,9 +21,9 @@ class WigIterator protected (val its: Iterator[WigUnit]) extends Iterable[WigUni
       var tmpLast = Long.MinValue
       var tmpStart = Long.MinValue
 
-      protected var nextOne: Option[FixedStep] = gen()
+      protected var nextOne: Option[WigUnit] = gen()
 
-      def next(): FixedStep = {
+      def next(): WigUnit = {
         if (!hasNext) sys.error("Nothing in next.")
         else {
           val tmp = nextOne.get
@@ -40,7 +34,7 @@ class WigIterator protected (val its: Iterator[WigUnit]) extends Iterable[WigUni
 
       def hasNext = nextOne.isDefined
 
-      protected def gen(): Option[FixedStep] = {
+      protected def gen(): Option[WigUnit] = {
         for(unit <- its) {
           unit match {
             case VariableStep(_, _, _) =>
@@ -74,26 +68,41 @@ class WigIterator protected (val its: Iterator[WigUnit]) extends Iterable[WigUni
         else None
       }
     }
-  )
+  )*/
 }
 
 object WigIterator {
 
   val DefaultSep = """\p{javaWhitespace}+"""
 
-  trait WigUnit{
+  sealed trait WigUnit extends Block {
     type T
     def chrom: String
     def span: Int
     def lines: Array[T]
     def length = lines.length * span
     def marginalize(wing: Int): WigUnit
+    def +(that: WigUnit): WigUnit
+  }
+
+  object WigUnit {
+    def append(x: WigUnit, y: WigUnit) = x + y
   }
 
   case class VariableStep(chrom: String, span: Int, lines: Array[(Long, Double)]) extends WigUnit {
+    lazy val start = lines.head._1
+    lazy val end = lines.last._1 + span
     type T = (Long, Double)
     override lazy val length = super.length
     def marginalize(wing: Int) = this
+    override def appendableWith(that: Block): Boolean = {
+      that match {
+        case x: VariableStep => false
+        case _ => false
+      }
+    }
+
+    def +(that: WigUnit): WigUnit = sys.error("sorry")
   }
 
   object VariableStep {
@@ -105,9 +114,9 @@ object WigIterator {
     }
   }
 
-  case class FixedStep(chrom: String, start: Long, step: Int, span: Int, lines: Array[Double])
-    extends WigUnit{
+  case class FixedStep(chrom: String, start: Long, step: Int, span: Int, lines: Array[Double]) extends WigUnit{
     type T = Double
+    lazy val end = start + length
     override lazy val length = super.length
     def marginalize(wing: Int): FixedStep = {
       require(step == 1 && span == 1)
@@ -121,6 +130,18 @@ object WigIterator {
       val tmp = f(0, 2 * wing + 1, init).toArray
       FixedStep(chrom,start + wing, 1, 1, tmp)
     }
+    def appendableWith(that: Block): Boolean = {
+      that match {
+        case FixedStep(x,y,z,w,_) => this.end == y && this.chrom == x
+        case _ => false
+      }
+    }
+
+    def +(that: WigUnit): WigUnit =
+      that match {
+        case FixedStep(_,_,_,_,ys) => FixedStep(chrom, start, step, span, lines ++ ys)
+        case _ => sys.error("sorry")
+      }
   }
 
   object FixedStep {
@@ -137,8 +158,9 @@ object WigIterator {
   def fromFile[T](f: String, sep: String = DefaultSep) = new WigIterator (
     new Iterator[WigUnit] {
       val s = new BufferedSource(
-        if (f.endsWith(".gz")) new GZIPInputStream(new FileInputStream(f))
+        if (f.endsWith(".gz")) new GZIPInputStream(new FileInputStream(f), 1024 * 1024)
         else new FileInputStream(f)
+        , 1024 * 1024
       )
 
 
@@ -150,7 +172,7 @@ object WigIterator {
 
       // define first unit's step mode
       val line = lines.find(line => line.startsWith("fixed") || line.startsWith("variable"))
-      if(line.isEmpty) sys.error("Input file may not be wig format.")
+      if(line.isEmpty) sys.error("Input file may not be biformat.maf.wig format.")
       val p = line.get.split(sep)
       p(0) match {
         case "fixedStep" =>
