@@ -13,7 +13,7 @@ trait BlockIterator[T <: Block] extends Iterable[T] with TraversableOnce[T]{
 
   def merge: BlockIterator[T]
 
-  def mergedIterator: Iterator[T] = new Iterator[T] {
+  protected def mergedIterator: Iterator[T] = new Iterator[T] {
 
     protected var buf: Option[T] = None
 

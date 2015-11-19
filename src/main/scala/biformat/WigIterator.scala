@@ -7,11 +7,11 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import scala.io.BufferedSource
 
-class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.BlockIterator[WigUnit] {
+final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.BlockIterator[WigUnit] {
 
   override def merge: WigIterator = new WigIterator(mergedIterator)
 
-  override def append(x: WigUnit, y: WigUnit) = WigUnit.append(x,y)
+  override def append(x: WigUnit, y: WigUnit): WigUnit = WigUnit.append(x,y)
 
   /*def merge: WigIterator = new WigIterator (
     new Iterator[WigUnit] {
@@ -162,7 +162,6 @@ object WigIterator {
         else new FileInputStream(f)
         , 1024 * 1024
       )
-
 
       if (s.isEmpty) sys.error("we can't find path to " + f)
 

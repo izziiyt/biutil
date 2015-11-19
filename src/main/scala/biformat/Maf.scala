@@ -16,7 +16,7 @@ object Maf {
     tmp
   }
 
-  def convert(mf: String, spmf: String, per: Int, species: Int): Unit = {
+  /*def convert(mf: String, spmf: String, per: Int, species: Int): Unit = {
     val it = MafIterator.fromMSA(mf).iterator
     val w = new PrintWriter(spmf)
     var tmp = it.next()
@@ -30,7 +30,7 @@ object Maf {
     }
     if (tmp.length > 0) w.println(tmp.seqs.map(z => z.mkString("")).reduce(_ + "," + _))
     w.close()
-  }
+  }*/
 
   def div(seqs: List[Array[Base]], size: Int): Array[List[Array[Base]]] = {
     @tailrec
@@ -44,30 +44,75 @@ object Maf {
     f(seqs, Nil, size)
   }
 
-  case class MafUnit(lines: List[MafLine]) {
-    require(lines.forall(_.length == lines.head.length))
+  case class MafUnit(lines: Map[String, MafLine]) {
+    lazy val length = lines.values.head.length
 
-    lazy val length = lines.head.length
+    require(lines.values.forall(_.length == length))
 
-    def +(that: MafUnit) = new MafUnit((lines, that.lines).zipped.map(_ ++ _))
+    def start(target: String) = lines(target).start
 
-    def sliceAt(n: Int) = (
-      new MafUnit(lines.map(_.take(n))),
-      new MafUnit(lines.map(_.drop(n)))
-      )
+    /**
+      * Please check whether appendable before use.
+      * */
+    def +(that: MafUnit): MafUnit = {
+      val newlines = scala.collection.mutable.Map.empty[String, MafLine]
+      that.lines.iterator.foreach{
+        case (name, value)  =>
+          this.lines.get(name) match {
+            case None =>
+              newlines += name -> MafLine(name, value.subname, value.start, value.strand,
+                Array.fill(this.length)(Base.N) ++ value.seq)
+            case _ =>
+              newlines += name -> (this.lines(name) + value)
+          }
+      }
+      this.lines.iterator.foreach{
+        case (name, value)  =>
+          that.lines.get(name) match {
+            case None =>
+              newlines += name -> MafLine(name, value.subname, value.start, value.strand,
+                 value.seq ++ Array.fill(that.length)(Base.N))
+            case _ =>
+              Unit
+          }
+      }
+      MafUnit(newlines.toMap)
+    }
 
-    def seqs:List[Array[Base]] = lines.map(_.seq)
+    def appendable(that: MafUnit, target: String): Boolean = lines(target).appendableWith(that.lines(target))
+
+    def sliceAt(n: Int): Pair[MafUnit,MafUnit] = {
+      val (a, b) = lines.iterator.map {
+        case (x, y) =>
+          val tmp = y.splitAt(n)
+          Pair(x -> tmp._1, x -> tmp._2)
+      }.toList.unzip
+      (MafUnit(a.toMap), MafUnit(b.toMap))
+    }
+
+    def seqs: List[Array[Base]] = lines.valuesIterator.map(_.seq).toList
   }
 
-  class MafIterator protected (val its: Iterator[MafUnit]) extends Iterable[MafUnit] with TraversableOnce[MafUnit] {
+  object MafUnit {
+    def apply(lines: Iterable[MafLine]): MafUnit = MafUnit(lines.map(x => x.name -> x).toMap)
+  }
+
+  final class MafIterator protected (val its: Iterator[MafUnit]) extends Iterable[MafUnit] with TraversableOnce[MafUnit] {
     def iterator: Iterator[MafUnit] = its
   }
 
   case class MafLine(name: String, subname: String, start: Long, strand: String, seq: Array[Base]) {
     lazy val length = seq.length
-    def ++(that: MafLine) = MafLine(name, subname, Long.MinValue, "", seq ++ that.seq)
-    def drop(n: Int) = MafLine(name,subname,start,strand,seq.drop(n))
-    def take(n: Int) = MafLine(name,subname,start,strand,seq.take(n))
+    lazy val end = start + length
+    def appendableWith(that: MafLine): Boolean =
+      this.name == that.name && this.subname == that.subname && this.end == that.start && this.strand == that.strand
+    def +(that: MafLine) = MafLine(name, subname, start, strand, seq ++ that.seq)
+    def drop(n: Int): MafLine = MafLine(name,subname,start,strand,seq.drop(n))
+    def take(n: Int): MafLine = MafLine(name,subname,start + n,strand,seq.take(n))
+    def splitAt(n: Int): Pair[MafLine, MafLine] = {
+      val (x, y) = seq.splitAt(n)
+      (MafLine(name, subname, start, strand, x), MafLine(name, subname, start + n, strand, y))
+    }
   }
 
   object MafLine {
@@ -82,7 +127,7 @@ object Maf {
       val s = new BufferedSource(
         if (f.endsWith(".gz")) new GZIPInputStream(new FileInputStream(f), 1024 * 1024)
         else new FileInputStream(f)
-      , 1024 * 1024
+        , 1024 * 1024
       )
       val lines = s.getLines()
 
@@ -107,8 +152,7 @@ object Maf {
             case "s" =>
               buf += MafLine.fromString(p)
             case "a" if buf.nonEmpty =>
-              val tmp = Some(MafUnit(buf.toList))
-              return tmp
+              return Some(MafUnit(buf.toList))
             case _ => Unit
           }
         }

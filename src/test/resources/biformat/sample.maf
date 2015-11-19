@@ -1,0 +1,13 @@
+##maf version=1 scoring=zero
+a score=0.000000
+s alpha 0   22   +   8   CAGCACTT
+s beta  992   22   +   8   CAGGAGTT
+s gamma    777 22  +   8   CTGGTCGG
+
+a score=0.3434344343
+s alpha 8   22   +   11   CAGCACTTAAT
+s gamma 875987   17   -   9   CTGGTCGG--G
+
+a score =0.44
+s alpha 19   22   +   3   CAN
+s beta 48375304 11 + 3 AGN
