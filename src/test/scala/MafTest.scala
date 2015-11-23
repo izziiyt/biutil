@@ -16,8 +16,9 @@ class MafTest extends FunSuite {
       (xs2,ys2).zipped.foreach((as,bs) => f(as,bs))
     }*/
 
-  test("MafIterator"){
-    val its = MafIterator.fromMSA("src/test/resources/biformat/sample.maf").iterator
+  /*test("MafIterator"){
+    val s = biformat.bigSource("src/test/resources/biformat/sample.maf")
+    val its = MafIterator.fromMSA(s, "alpha").iterator
     val x1 = its.next()
     val x2 = its.next()
     val x3 = its.next()
@@ -28,7 +29,33 @@ class MafTest extends FunSuite {
     assert(tmp.lines("alpha").seq sameElements Array(C,A,G,C,A,C,T,T,C,A,G,C,A,C,T,T,A,A,T,C,A,N))
     assert(tmp.lines("gamma").seq sameElements Array(C,T,G,G,T,C,G,G,C,T,G,G,T,C,G,G,N,N,G,N,N,N))
     assert(tmp.lines("beta").length == 22 && tmp.lines("alpha").length == 22 && tmp.lines("gamma").length == 22)
-
+    s.close()
     //its.foreach(x => x.lines.values.foreach(y => println(y.seq.mkString(","))))
+  }
+
+  test("merge"){
+    val s = biformat.bigSource("src/test/resources/biformat/sample.maf")
+    val its = MafIterator.fromMSA(s, "alpha").merge
+    for(tmp <- its){
+      assert(tmp.lines("beta").seq sameElements Array(C,A,G,G,A,G,T,T,N,N,N,N,N,N,N,N,N,N,N,A,G,N))
+      assert(tmp.lines("alpha").seq sameElements Array(C,A,G,C,A,C,T,T,C,A,G,C,A,C,T,T,A,A,T,C,A,N))
+      assert(tmp.lines("gamma").seq sameElements Array(C,T,G,G,T,C,G,G,C,T,G,G,T,C,G,G,N,N,G,N,N,N))
+      assert(tmp.lines("beta").length == 22 && tmp.lines("alpha").length == 22 && tmp.lines("gamma").length == 22)
+    }
+  }*/
+  test("big"){
+    val s = biformat.bigSource("src/test/resources/biformat/bigbig.maf")
+    val its = MafIterator.fromMSA(s, "hg19").merge()
+    for (it <- its){
+      println(it.length + "\t" + it.start + "\t" + it.end)
+    }
+    s.close()
+    println("-----------------------------------------------------------")
+    val t = biformat.bigSource("src/test/resources/biformat/bigbig.maf")
+    val itss = MafIterator.fromMSA(t, "hg19")
+    for (it <- itss){
+      println(it.length + "\t" + it.start + "\t" + it.end)
+    }
+    t.close()
   }
 }

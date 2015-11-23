@@ -5,6 +5,6 @@ import alignment._
  */
 class CodonTableTest extends FunSuite {
   test("Codontable"){
-    CodonTable.fromFile("src/test/resources/codon.table.txt")
+    //CodonTable.fromFile("src/test/resources/codon.table.txt")
   }
 }

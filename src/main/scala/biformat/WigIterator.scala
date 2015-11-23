@@ -9,7 +9,7 @@ import scala.io.BufferedSource
 
 final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.BlockIterator[WigUnit] {
 
-  override def merge: WigIterator = new WigIterator(mergedIterator)
+  override def merge(n: Int = 10000): WigIterator = new WigIterator(mergedIterator(n))
 
   override def append(x: WigUnit, y: WigUnit): WigUnit = WigUnit.append(x,y)
 

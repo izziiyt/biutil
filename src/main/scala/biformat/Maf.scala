@@ -1,15 +1,16 @@
 package biformat
 
-import java.io._
-import java.util.zip.GZIPInputStream
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.io.BufferedSource
 import alignment.Base
-
+import scala.io.Source
+/**
+  * .maf format manager object.
+  * */
 object Maf {
+  @deprecated
   def readMaf(mf: String, per: Int = 512): Array[List[Array[Base]]] = {
-    val it = MafIterator.fromMSA(mf)
+    val it = MafIterator.fromMSA(Source.fromFile(mf), "hg19")
     val totalunit = it.reduceLeft { (n, u) => n + u }
     val bases = totalunit.seqs
     val tmp = div(bases, per)
@@ -44,12 +45,19 @@ object Maf {
     f(seqs, Nil, size)
   }
 
-  case class MafUnit(lines: Map[String, MafLine]) {
-    lazy val length = lines.values.head.length
+  /**
+    * a component appeared in .maf-fomat files.
+    * iterably managed by MafIterator [[MafIterator]]
+    * */
+  case class MafUnit(lines: Map[String, MafLine], target: String) extends Block {
+    val length = lines.values.head.length
 
     require(lines.values.forall(_.length == length))
 
-    def start(target: String) = lines(target).start
+    def start = lines(target).start
+    def end = lines(target).end
+
+    //def start(target: String) = lines(target).start
 
     /**
       * Please check whether appendable before use.
@@ -60,7 +68,7 @@ object Maf {
         case (name, value)  =>
           this.lines.get(name) match {
             case None =>
-              newlines += name -> MafLine(name, value.subname, value.start, value.strand,
+              newlines += name -> MafLine(name, value.subname, value.start, value.num, value.strand,
                 Array.fill(this.length)(Base.N) ++ value.seq)
             case _ =>
               newlines += name -> (this.lines(name) + value)
@@ -70,100 +78,119 @@ object Maf {
         case (name, value)  =>
           that.lines.get(name) match {
             case None =>
-              newlines += name -> MafLine(name, value.subname, value.start, value.strand,
-                 value.seq ++ Array.fill(that.length)(Base.N))
+              newlines += name -> MafLine(name, value.subname, value.start, value.num, value.strand,
+                value.seq ++ Array.fill(that.length)(Base.N))
             case _ =>
               Unit
           }
       }
-      MafUnit(newlines.toMap)
+      MafUnit(newlines.toMap, target)
     }
-
-    def appendable(that: MafUnit, target: String): Boolean = lines(target).appendableWith(that.lines(target))
-
-    def sliceAt(n: Int): Pair[MafUnit,MafUnit] = {
+    /**
+      * [[Block.appendableWith]]
+      * */
+    def appendableWith(that: Block): Boolean = that match {
+      case MafUnit(xlines, xtarget) =>
+        val a = lines(target)
+        val b = xlines(target)
+        a.subname == b.subname && a.end == b.start && a.strand == b.strand
+      case _ => false
+    }
+    /**
+      * Works as like Seq.sliceAt
+      * */
+    /*def sliceAt(n: Int): Pair[MafUnit,MafUnit] = {
       val (a, b) = lines.iterator.map {
         case (x, y) =>
           val tmp = y.splitAt(n)
           Pair(x -> tmp._1, x -> tmp._2)
       }.toList.unzip
-      (MafUnit(a.toMap), MafUnit(b.toMap))
-    }
-
+      (MafUnit(a.toMap, target), MafUnit(b.toMap, target))
+    }*/
+    @deprecated
     def seqs: List[Array[Base]] = lines.valuesIterator.map(_.seq).toList
   }
 
   object MafUnit {
-    def apply(lines: Iterable[MafLine]): MafUnit = MafUnit(lines.map(x => x.name -> x).toMap)
+    /**
+      * @constructor
+      * */
+    def apply(lines: Iterable[MafLine], target: String): MafUnit = MafUnit(lines.map(x => x.name -> x).toMap, target)
   }
 
-  final class MafIterator protected (val its: Iterator[MafUnit]) extends Iterable[MafUnit] with TraversableOnce[MafUnit] {
-    def iterator: Iterator[MafUnit] = its
+  final class MafIterator protected (val its: Iterator[MafUnit], target: String) extends BlockIterator[MafUnit] {
+
+    def merge(maxSize: Int = 10000) = new MafIterator(mergedIterator(maxSize), target)
+
+    def append(x: MafUnit, y: MafUnit): MafUnit = x + y
   }
 
-  case class MafLine(name: String, subname: String, start: Long, strand: String, seq: Array[Base]) {
-    lazy val length = seq.length
-    lazy val end = start + length
-    def appendableWith(that: MafLine): Boolean =
-      this.name == that.name && this.subname == that.subname && this.end == that.start && this.strand == that.strand
-    def +(that: MafLine) = MafLine(name, subname, start, strand, seq ++ that.seq)
-    def drop(n: Int): MafLine = MafLine(name,subname,start,strand,seq.drop(n))
-    def take(n: Int): MafLine = MafLine(name,subname,start + n,strand,seq.take(n))
-    def splitAt(n: Int): Pair[MafLine, MafLine] = {
+  case class MafLine(name: String, subname: String, start: Long, num: Long, strand: String, seq: Array[Base]) {
+    def length = seq.length
+    def end = start + num
+    def +(that: MafLine) = MafLine(name, subname, start, num + that.num, strand, seq ++ that.seq)
+    /*def splitAt(n: Int): Pair[MafLine, MafLine] = {
+      require(n < length)
       val (x, y) = seq.splitAt(n)
-      (MafLine(name, subname, start, strand, x), MafLine(name, subname, start + n, strand, y))
-    }
+      (MafLine(name, subname, start, start + n, strand, x), MafLine(name, subname, start + n, end, strand, y))
+    }*/
   }
 
   object MafLine {
+    /**
+      * @constructor
+      * */
     def fromString(xs: Seq[String]) = {
       val names = xs(1).split('.')
-      MafLine(names(0), if (names.length == 2) names(1) else "", xs(2).toLong, xs(4), xs(6).toCharArray.map(Base.fromChar))
+      MafLine(names(0), if (names.length == 2) names(1) else "", xs(2).toLong, xs(3).toLong, xs(4), xs(6).toCharArray.map(Base.fromChar))
     }
   }
 
   object MafIterator {
-    def fromMSA(f: String, sep: String = """\p{javaWhitespace}+""") = new MafIterator (new Iterator[MafUnit] {
-      val s = new BufferedSource(
-        if (f.endsWith(".gz")) new GZIPInputStream(new FileInputStream(f), 1024 * 1024)
-        else new FileInputStream(f)
-        , 1024 * 1024
-      )
-      val lines = s.getLines()
+    /**
+      * @constructor
+      * We recomend you to get Source by biformat.bigSource because ordinary maf-format files are big.
+      * */
+    def fromMSA(s : Source, target: String, sep: String = """\p{javaWhitespace}+""") =
+      new MafIterator (new Iterator[MafUnit] {
 
-      protected var nextOne: Option[MafUnit] = nexti()
+        val lines = s.getLines()
 
-      def hasNext = nextOne.isDefined
+        var i = 0
 
-      def next(): MafUnit = {
-        if (!hasNext) sys.error("Nothing in next.")
-        else {
-          val tmp = nextOne.get
-          nextOne = nexti()
-          tmp
-        }
-      }
+        protected var nextOne: Option[MafUnit] = nexti()
 
-      def nexti(): Option[MafUnit] = {
-        val buf = new ListBuffer[MafLine]()
-        if (s.isEmpty) return None
-        for (line <- lines; if line != "" && !line.startsWith("#"); p = line.split(sep)) {
-          p(0) match {
-            case "s" =>
-              buf += MafLine.fromString(p)
-            case "a" if buf.nonEmpty =>
-              return Some(MafUnit(buf.toList))
-            case _ => Unit
+        def hasNext = nextOne.isDefined
+
+        def next(): MafUnit = {
+          if (!hasNext) sys.error("Nothing in next.")
+          else {
+            val tmp = nextOne.get
+            nextOne = nexti()
+            tmp
           }
         }
-        if (buf.nonEmpty) Some(MafUnit(buf.toList))
-        else {
-          s.close()
-          None
+        def nexti(): Option[MafUnit] = {
+          val buf = new ListBuffer[MafLine]()
+          if (s.isEmpty) return None
+          for (line <- lines; if line != "" && !line.startsWith("#"); p = line.split(sep)) {
+            p(0) match {
+              case "s" =>
+                buf += MafLine.fromString(p)
+              case "a" if buf.nonEmpty =>
+                i = i + 1
+                return Some(MafUnit(buf.toList, target))
+              case _ => Unit
+            }
+          }
+          if (buf.nonEmpty) Some(MafUnit(buf.toList, target))
+          else {
+            s.close()
+            None
+          }
         }
       }
-    }
-    )
+        , target)
   }
 
 }
