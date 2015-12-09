@@ -2,7 +2,7 @@ package biformat
 
 import java.io.FileInputStream
 import java.util.zip.GZIPInputStream
-import biformat.WigIterator.WigUnit
+import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
 import scala.annotation.tailrec
 import scala.collection.mutable.{ListBuffer, ArrayBuffer}
 import scala.io.BufferedSource
@@ -72,6 +72,17 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
       }
     }
   )
+
+  def hist(size: Int = 1000): Array[Int] =  {
+    val vec = Array.fill[Int](size)(0)
+    its.foreach{
+      case VariableStep(_, _, lines) =>
+        lines.foreach{case (_,x) => vec((x * size).toInt) += 1}
+      case FixedStep(_, _, _, _, _) =>
+        sys.error("not supported.")
+    }
+    vec
+  }
 }
 
 object WigIterator {
@@ -97,7 +108,6 @@ object WigIterator {
   }
 
   /**
-    *
     * @param chrom chromosome name
     * @param span span paramter
     * @param lines all (Long, Double) pairs
