@@ -2,7 +2,6 @@ package biformat
 
 /**
   * Bioinformatics format UI.
-  * [[Iterable]] [[TraversableOnce]]
   */
 
 trait BlockIterator[T <: Block] extends Iterable[T] with TraversableOnce[T]{
@@ -56,10 +55,6 @@ trait BlockIterator[T <: Block] extends Iterable[T] with TraversableOnce[T]{
         case None => None
       }
     }
-  }
-
-  def sizeBasedSplit(size: Int) = {
-
   }
 
   protected def append(x: T, y: T): T

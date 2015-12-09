@@ -1,61 +1,42 @@
-import biformat.Maf.MafIterator
+import biformat.MafIterator
 import org.scalatest.FunSuite
-import alignment.Base.{A,C,G,T,N}
-import alignment.Base
-class MafTest extends FunSuite {
-  /*test("readmaf") {
-      def f(xs:List[Array[Base]],ys:List[Array[Base]]):Unit = assert((xs,ys).zipped.forall((x,y) => x sameElements y))
-      val xs1 = Maf.readMaf("src/test/resources/fdur/test1.maf", 10)
-      val ys1 = List(Array[Base](C, A, G, C, A, C, T, T), Array[Base](C, A, G, G, A, G, T, T), Array[Base](C, T, G, G, T, C, G, G))
-      f(xs1.head,ys1)
-      val xs2 = Maf.readMaf("src/test/resources/fdur/sample.maf", 10)
-      val ys2 = Array(
-        List(Array[Base](C, A, G, C, A, C, T, T,C,A), Array[Base](C, A, G, G, A, G, T, T,C,A), Array[Base](C, T, G, G, T, C, G, G,C,T)),
-        List(Array[Base](G,C,A,C,T,T,A,A,T), Array[Base](G,G,A,G,T,T,N,N,T), Array[Base](G,G,T,C,G,G,N,N,G))
-      )
-      (xs2,ys2).zipped.foreach((as,bs) => f(as,bs))
-    }*/
 
-  /*test("MafIterator"){
-    val s = biformat.bigSource("src/test/resources/biformat/sample.maf")
-    val its = MafIterator.fromMSA(s, "alpha").iterator
+class MafTest extends FunSuite {
+
+  test("construct"){
+    val s = biformat.bigSource("src/test/resources/biformat/test.maf")
+    val its = MafIterator.fromMSA(s,"hg19").iterator
     val x1 = its.next()
+    assert(x1.target == "hg19")
+    assert(x1.start == 16091775)
+    assert(x1.lines.size == 2)
+    assert(x1.end == 16091781)
+    its.next()
     val x2 = its.next()
-    val x3 = its.next()
+    assert(x2.target == "hg19")
+    assert(x2.start == 16091789)
+    assert(x2.lines.size == 3)
+    assert(x2.end == 16091801)
+    its.next()
     assert(!its.hasNext)
-    val tmp = x1 + x2 + x3
-    //tmp.lines.values.foreach{y => println(y.name + " " + y.seq.mkString(",") + " " + y.length)}
-    assert(tmp.lines("beta").seq sameElements Array(C,A,G,G,A,G,T,T,N,N,N,N,N,N,N,N,N,N,N,A,G,N))
-    assert(tmp.lines("alpha").seq sameElements Array(C,A,G,C,A,C,T,T,C,A,G,C,A,C,T,T,A,A,T,C,A,N))
-    assert(tmp.lines("gamma").seq sameElements Array(C,T,G,G,T,C,G,G,C,T,G,G,T,C,G,G,N,N,G,N,N,N))
-    assert(tmp.lines("beta").length == 22 && tmp.lines("alpha").length == 22 && tmp.lines("gamma").length == 22)
-    s.close()
-    //its.foreach(x => x.lines.values.foreach(y => println(y.seq.mkString(","))))
   }
 
   test("merge"){
-    val s = biformat.bigSource("src/test/resources/biformat/sample.maf")
-    val its = MafIterator.fromMSA(s, "alpha").merge
-    for(tmp <- its){
-      assert(tmp.lines("beta").seq sameElements Array(C,A,G,G,A,G,T,T,N,N,N,N,N,N,N,N,N,N,N,A,G,N))
-      assert(tmp.lines("alpha").seq sameElements Array(C,A,G,C,A,C,T,T,C,A,G,C,A,C,T,T,A,A,T,C,A,N))
-      assert(tmp.lines("gamma").seq sameElements Array(C,T,G,G,T,C,G,G,C,T,G,G,T,C,G,G,N,N,G,N,N,N))
-      assert(tmp.lines("beta").length == 22 && tmp.lines("alpha").length == 22 && tmp.lines("gamma").length == 22)
-    }
-  }*/
-  test("big"){
-    val s = biformat.bigSource("src/test/resources/biformat/bigbig.maf")
-    val its = MafIterator.fromMSA(s, "hg19").merge()
-    for (it <- its){
-      println(it.length + "\t" + it.start + "\t" + it.end)
-    }
-    s.close()
-    println("-----------------------------------------------------------")
-    val t = biformat.bigSource("src/test/resources/biformat/bigbig.maf")
-    val itss = MafIterator.fromMSA(t, "hg19")
-    for (it <- itss){
-      println(it.length + "\t" + it.start + "\t" + it.end)
-    }
-    t.close()
+    val s = biformat.bigSource("src/test/resources/biformat/test.maf")
+    val its = MafIterator.fromMSA(s,"hg19").merge(20).iterator
+    val x1 = its.next()
+    assert(x1.start == 16091775)
+    assert(x1.end == 16091788)
+    assert(x1.lines("panTro4").seq.mkString("") == "---------TG--CC-T")
+    val x2 = x1.Dremoved
+    assert(x2.start == 16091775)
+    assert(x2.end == 16091788)
+    assert(x2.lines("gorGor3").seq.mkString("") == "T-ACATCGGTCCT")
+    val x3 = its.next().Dremoved
+    assert(x3.start == 16091789)
+    assert(x3.end == 16091801)
+    assert(x3.lines("gorGor3").seq.mkString("") == "AACTAGACCCT")
+    its.next()
+    assert(!its.hasNext)
   }
 }

@@ -1,0 +1,19 @@
+##maf version=1 program=Bio++
+#
+a score=-168419
+s hg19.chr21            16091775  6 +  48129895 AA--AAA-C
+s gorGor3.chr21          2969955  6 +  35451371 T---ACATT
+
+a score=156767
+s hg19.chr21            16091781 7 +  48129895 NNGNCC-T
+s panTro4.chr21          1176546 7 -  32799110 TG--CC-T
+s gorGor3.chr21          2969961 7 +  35451371 CGGTCC-T
+
+a score=518037
+s hg19.chr21            16091789 12 +  48129895 -AAC-TAGA-----------------------CCCT
+s panTro4.chr21          1176553 12 +  32799110 GAAC-TAGA-----------------------CCCT
+s gorGor3.chr21          2969968 12 +  35451371 GAAC-TAGA-----------------------CCCT
+
+a score=520024
+s hg19.chr21             16091801 12 +  48129895 CT-ATAATA--TGAT
+s panTro4.chr21           1176565 12 +  32799110 CT-ATAATA--TGAT

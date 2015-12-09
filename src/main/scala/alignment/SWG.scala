@@ -82,8 +82,6 @@ abstract class AlignmentTools{
   def mt:Int
 }
 
-//case class AlignmentResult(seq1:Array[AminoAcid],seq2:Array[AminoAcid],score:Int)
-
 sealed abstract class Direction
 
 object Direction {

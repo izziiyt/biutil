@@ -1,0 +1,15 @@
+## Branch Length Score in the tree. Target species is hg19.
+variableStep chrom=chr21
+88 1.0
+89 2.0
+
+variableStep chrom=chr21
+93 5.0
+94 6.0
+95 7.0
+96 1.0
+97 3.0
+98 6.0
+
+variableStep chrom=chr21
+117 8.0
