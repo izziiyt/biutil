@@ -22,14 +22,15 @@ pending
 
 If you want to use this library as it is, the easiest way is using sbt publishLocal.
 ```bash
-git clone https://github.com/izziiyt/biutil
+git clone https://github.com/izziiyt/biutil.git
 cd biutil
 sbt + publishLocal
 ```
 
 ###LICENSE
 
-Under the MIT License, see [LICENSE.txt](https://github.com/izziiyt/biutil/LICENSE.txt).
+Under the MIT License, see LICENSE.txt
 
 ###Developer's Information & Contact
-   Yuto Ichikawa  
+
+Yuto Ichikawa  

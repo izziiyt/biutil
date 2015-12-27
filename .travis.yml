@@ -1,0 +1,17 @@
+language: scala
+scala:
+  - 2.11.7
+
+jdk:
+  - oraclejdk8
+  - openjdk7
+
+sudo: false
+
+script: ./sbt test
+
+notifications:
+  emails:
+    - ahne.ahne.ahne@gmail.com
+  on_success: always
+  on_failure: always
