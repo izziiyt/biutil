@@ -1,5 +1,6 @@
 #biutil (Scala-2.10/11)
 
+[![Build Status](https://travis-ci.org/izziiyt/biutil.svg?branch=master)](https://travis-ci.org/izziiyt/biutil)
 "self satisfied" Bioinformatics Utility Libraries for Scala
 
 ###Packages

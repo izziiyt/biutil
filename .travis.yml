@@ -8,7 +8,7 @@ jdk:
 
 sudo: false
 
-script: ./sbt test
+script: sbt test
 
 notifications:
   emails:
