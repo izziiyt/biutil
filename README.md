@@ -1,4 +1,4 @@
-#biutil(Scala-2.10/11)
+#biutil (Scala-2.10/11)
 
 "self satisfied" Bioinformatics Utility Libraries for Scala
 
@@ -24,7 +24,7 @@ If you want to use this library as it is, the easiest way is using sbt publishLo
 ```bash
 git clone https://github.com/izziiyt/biutil
 cd biutil
-sbt publishLocal
+sbt + publishLocal
 ```
 
 ###LICENSE

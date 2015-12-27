@@ -1,5 +1,5 @@
-organization := "izzii"
-version := "1.0.0"
+organization := "izziiyt"
+version := "1.0.0-SNAPSHOT"
 name := "biutil"
 scalaVersion := Common.scalaVersion
 crossScalaVersions  := Common.crossScalaVersions
