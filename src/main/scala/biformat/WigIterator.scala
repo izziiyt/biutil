@@ -4,6 +4,7 @@ import java.io.FileInputStream
 import java.util.zip.GZIPInputStream
 import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.collection.mutable.{ListBuffer, ArrayBuffer}
 import scala.io.BufferedSource
 
@@ -27,14 +28,14 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
     */
   override def append(x: WigUnit, y: WigUnit): WigUnit = WigUnit.append(x,y)
 
-  def filterWithBed(x: BedIterator): WigIterator = new WigIterator(
+  def filterWithBed(x:Iterable[BedLine]): WigIterator = new WigIterator(
     new Iterator[WigUnit] {
 
       val bit = x.iterator
 
-      protected var bedBuf: BedLine = bit.next()
+      protected var bedBuf: Option[BedLine] = if (bit.hasNext) Some(bit.next()) else None
 
-      protected var wigBuf: WigUnit = its.next()
+      protected var wigBuf: Option[WigUnit] = if (its.hasNext) Some(its.next()) else None
 
       protected var nextOne: Option[WigUnit] = gen()
 
@@ -51,18 +52,20 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
 
       protected def gen(): Option[WigUnit] = {
         @tailrec
-        def f(wig: WigUnit, bed: BedLine): (Option[WigUnit], WigUnit, BedLine) = {
-          if(wig == null || bed == null) (None, null, null)
-          else {
-            val tmp = wig.interSection(bed)
-            if (tmp.isDefined) {
-              if (bed.end < wig.end) (tmp, wig, if (bit.hasNext) bit.next() else null)
-              else (tmp, if (its.hasNext) its.next() else null, bed)
-            }
-            else {
-              if (wig.chrom == bed.chr && wig.end <= bed.start) f(if (its.hasNext) its.next() else null, bed)
-              else f(wig, if (bit.hasNext) bit.next() else null)
-            }
+        def f(wigop: Option[WigUnit], bedop: Option[BedLine]): (Option[WigUnit], Option[WigUnit], Option[BedLine]) = {
+          def nextb = if (bit.hasNext) Some(bit.next()) else None
+          def nextw = if (its.hasNext) Some(its.next()) else None
+          (wigop, bedop) match {
+            case (None, _) => (None, None, None)
+            case (_, None) => (None, None, None)
+            case (Some(wig), Some(bed)) =>
+              if (wig.chrom != bed.chr) f(wigop, nextb)
+              else wig.interSection(bed) match {
+                case None =>
+                  if (wig.end <= bed.start) f(nextw, bedop) else f(wigop, nextb)
+                case tmp =>
+                  if (bed.end < wig.end) (tmp, wigop, nextb) else (tmp, nextw, bedop)
+              }
           }
         }
         val (v1, v2, v3) = f(wigBuf, bedBuf)
@@ -73,16 +76,17 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
     }
   )
 
-  def hist(size: Int = 1000): Array[Int] =  {
+  def hist(size: Int = 100, max: Double = 1.0): Array[Int] =  {
     val vec = Array.fill[Int](size)(0)
     its.foreach{
       case VariableStep(_, _, lines) =>
-        lines.foreach{case (_,x) => vec((x * size).toInt) += 1}
+        lines.foreach{case (_,x) => vec((x * size / max).toInt) += 1}
       case FixedStep(_, _, _, _, _) =>
         sys.error("not supported.")
     }
     vec
   }
+
 }
 
 object WigIterator {
@@ -112,6 +116,7 @@ object WigIterator {
     * @param span span paramter
     * @param lines all (Long, Double) pairs
     */
+
   case class VariableStep(chrom: String, span: Int, lines: Array[(Long, Double)]) extends WigUnit {
     type T = (Long, Double)
     def start = lines.head._1
@@ -149,11 +154,11 @@ object WigIterator {
     }
 
     def interSection(bed: BedLine): Option[VariableStep] = {
-      if (chrom != bed.chr || end <= bed.start || start >= bed.end) None
-      else {
-        val tmp = lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end)
-        Some(VariableStep(chrom, span, tmp))
-      }
+      if (end <= bed.start || start >= bed.end || chrom != bed.chr) None
+      else
+        Some(VariableStep(chrom, span,
+          lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end))
+        )
     }
   }
 

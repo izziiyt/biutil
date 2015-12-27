@@ -19,11 +19,18 @@ class WigTest extends FunSuite {
     val fwig = "src/test/resources/biformat/sample.var.wig"
     val fbed = "src/test/resources/biformat/sample.bed"
     val its = WigIterator.fromFile(fwig)
-    val bits = BedIterator.fromSource(Source.fromFile(fbed))
+    val bits = BedIterator.fromSource(Source.fromFile(fbed)).filter(x => x.chr == "chr21")
     val tmp = its.filterWithBed(bits).iterator
     assert(tmp.next.lines sameElements Array((93,5.0),(94,6.0)))
     assert(tmp.next.lines sameElements Array((97,3.0),(98,6.0)))
     assert(tmp.next.lines sameElements Array((117,8.0)))
     assert(!tmp.hasNext)
+  }
+
+  test("hist"){
+    val fwig = "src/test/resources/biformat/sample.var.wig"
+    val its = WigIterator.fromFile(fwig)
+    val tmp = its.hist(5,10)
+    assert(tmp sameElements Array(2,2,1,3,1))
   }
 }
