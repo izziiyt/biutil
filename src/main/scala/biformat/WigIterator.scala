@@ -276,7 +276,7 @@ object WigIterator {
                   nextunit = VariableStep(line)
                   VariableStep(chrom, span, buf.toArray)
                 case _ =>
-                  buf += Pair(p(0).toLong, p(1).toDouble)
+                  buf += Tuple2(p(0).toLong, p(1).toDouble)
               }
             }
             if (buf.nonEmpty) Some(VariableStep(chrom, span, buf.toArray))

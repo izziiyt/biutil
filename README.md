@@ -1,4 +1,4 @@
-#biutil
+#biutil(Scala-2.10/11)
 
 "self satisfied" Bioinformatics Utility Libraries for Scala
 
@@ -31,11 +31,5 @@ sbt publishLocal
 
 Under the MIT License, see [LICENSE.txt](https://github.com/izziiyt/biutil/LICENSE.txt).
 
-###Others
-[sbt](http://www.scala-sbt.org/) is a build tool for scala.  
-Installing takes you very long time because of resolving dependency.  
-These depended libraries are cached in your $HOME/.sbt or $HOME/.ivy2 and used next time.  
-'pack' and 'packInstall' are sbt-plugin developed in https://github.com/xerial/sbt-pack
-   
 ###Developer's Information & Contact
    Yuto Ichikawa  
