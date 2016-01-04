@@ -129,7 +129,7 @@ final class MafIterator protected (val its: Iterator[MafUnit], target: String) e
   * @param name species
   * @param subname chromosome
   * @param start head index(0-origin) in chromosome
-  * @param num # of non [[Base.D]]
+  * @param num # of nucleotides
   * @param strand '+' or '-'
   * @param seq Array[Base]
   */

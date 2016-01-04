@@ -1,6 +1,6 @@
 #biutil (Scala-2.10/11)
 
-[![Build Status](https://travis-ci.org/izziiyt/biutil.svg?branch=master)](https://travis-ci.org/izziiyt/biutil)
+[![Build Status](https://travis-ci.org/izziiyt/biutil.svg?branch=master)](https://travis-ci.org/izziiyt/biutil)  
 "self satisfied" Bioinformatics Utility Libraries for Scala
 
 ###Packages
@@ -32,6 +32,6 @@ sbt + publishLocal
 
 Under the MIT License, see LICENSE.txt
 
-###Developer's Information & Contact
+###Author
 
 Yuto Ichikawa  

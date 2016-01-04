@@ -6,7 +6,7 @@ import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.{ListBuffer, ArrayBuffer}
-import scala.io.BufferedSource
+import scala.io.{Source, BufferedSource}
 
 /**
   * can be managed with functional programming order
@@ -225,15 +225,10 @@ object WigIterator {
     }
   }
 
-  def fromFile[T](f: String, sep: String = DefaultSep) = new WigIterator (
-    new Iterator[WigUnit] {
-      val s = new BufferedSource(
-        if (f.endsWith(".gz")) new GZIPInputStream(new FileInputStream(f), 1024 * 1024)
-        else new FileInputStream(f)
-        , 1024 * 1024
-      )
+  //def fromFile[T](f: String, sep: String = DefaultSep) = new WigIterator (
+  def fromSource(s: Source, sep: String = DefaultSep) = new WigIterator (
 
-      if (s.isEmpty) sys.error("we can't find path to " + f)
+    new Iterator[WigUnit] {
 
       val lines = s.getLines()
 

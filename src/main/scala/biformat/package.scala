@@ -1,4 +1,4 @@
-import java.io.FileInputStream
+import java.io.{File, FileInputStream}
 import java.util.zip.GZIPInputStream
 import scala.io.{BufferedSource, Source}
 
@@ -12,9 +12,10 @@ import scala.io.{BufferedSource, Source}
   * Also you can use these iterators by functional methods.
   */
 package object biformat {
-  def bigSource(f: String): Source = new BufferedSource(
-    if (f.endsWith(".gz")) new GZIPInputStream(new FileInputStream(f), 1024 * 1024)
+  def bigSource(f: File): Source = new BufferedSource(
+    if (f.getName.endsWith(".gz")) new GZIPInputStream(new FileInputStream(f), 1024 * 1024)
     else new FileInputStream(f)
     , 1024 * 1024)
 
+  def bigSource(f: String): Source = bigSource(new File(f))
 }
