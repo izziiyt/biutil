@@ -32,4 +32,4 @@ scalacOptions ++= Seq(
   "-unchecked"
 )
 
-
+target in Compile in doc := baseDirectory.value.getParentFile / "izziiyt.github.io/biutil/api"

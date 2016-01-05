@@ -1,6 +1,6 @@
 package alignment
 
-import java.io.FileReader
+import java.io.{File, FileReader}
 import alignment.Base._
 import scala.collection._
 import scala.util.parsing.combinator.JavaTokenParsers
@@ -20,7 +20,7 @@ object CodonTable extends CodonTableParser{
 
   protected val bases = Array(A,C,G,T)
 
-  def fromFile(inf:String):CodonTable = {
+  def fromFile(inf: File): CodonTable = {
     val c2a = parseAll(blocks,new FileReader(inf)).get
     val is4Fold = mutable.Map[Codon,Boolean]()
     for(b1 <- bases;b2 <- bases;cdns = addOnes(b1,b2)){
@@ -30,6 +30,8 @@ object CodonTable extends CodonTableParser{
     }
     new CodonTable(is4Fold,c2a)
   }
+
+  def fromFile(inf: String): CodonTable = fromFile(new File(inf))
 
   protected def addOnes(f:Base,s:Base):Array[Codon] = (bases :+ N).map(Codon(f,s,_))
 }
