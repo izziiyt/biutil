@@ -37,14 +37,15 @@ object BedIterator {
 
     })
 }
-case class BedLine(chr: String, start: Long, end: Long, score: Double) extends Block {
+case class BedLine(chr: String, start: Long, end: Long, name:String, score: Double, strand: Char) extends Block {
   def length = (end - start).toInt
   def appendableWith(that: Block): Boolean = false
+  override def toString = chr + '\t' + start + '\t' + end + '\t' + name + '\t' + score.toInt + '\t' + strand
 }
 
 object BedLine {
   def apply(line: String, sep: String): BedLine = {
     val ps = line.split(sep)
-    BedLine(ps(0), ps(1).toLong, ps(2).toLong, ps(4).toDouble)
+    BedLine(ps(0), ps(1).toLong, ps(2).toLong, ps(3), ps(4).toDouble, ps(5).head)
   }
 }

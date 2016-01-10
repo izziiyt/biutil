@@ -13,9 +13,9 @@ import scala.io.{BufferedSource, Source}
   */
 package object biformat {
   def bigSource(f: File): Source = new BufferedSource(
-    if (f.getName.endsWith(".gz")) new GZIPInputStream(new FileInputStream(f), 1024 * 1024)
+    if (f.getName.endsWith(".gz")) new GZIPInputStream(new FileInputStream(f), 512 * 512)
     else new FileInputStream(f)
-    , 1024 * 1024)
+    , 512 * 512)
 
   def bigSource(f: String): Source = bigSource(new File(f))
 }

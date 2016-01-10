@@ -1,12 +1,9 @@
 package biformat
 
-import java.io.FileInputStream
-import java.util.zip.GZIPInputStream
 import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.collection.mutable.{ListBuffer, ArrayBuffer}
-import scala.io.{Source, BufferedSource}
+import scala.io.Source
 
 /**
   * can be managed with functional programming order
@@ -226,7 +223,7 @@ object WigIterator {
   }
 
   //def fromFile[T](f: String, sep: String = DefaultSep) = new WigIterator (
-  def fromSource(s: Source, sep: String = DefaultSep) = new WigIterator (
+  def fromSource(s: Source, maxsize: Int = 2048, sep: String = DefaultSep) = new WigIterator (
 
     new Iterator[WigUnit] {
 
@@ -258,52 +255,51 @@ object WigIterator {
         }
       }
 
-      protected def gen(): Option[WigUnit] =
-        nextunit match {
-          case VariableStep(chrom, span, _) =>
-            val buf = new ArrayBuffer[(Long, Double)]()
-            for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
-              p(0) match {
-                case "fixedStep" =>
-                  nextunit = FixedStep(line)
-                  VariableStep(chrom, span, buf.toArray)
-                case "variableStep" =>
-                  nextunit = VariableStep(line)
-                  VariableStep(chrom, span, buf.toArray)
-                case _ =>
-                  buf += Tuple2(p(0).toLong, p(1).toDouble)
-              }
+      protected def gen(): Option[WigUnit] = nextunit match {
+        case VariableStep(chrom, span, _) =>
+          val buf = new ArrayBuffer[(Long, Double)]()
+          for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
+            p(0) match {
+              case "fixedStep" =>
+                nextunit = FixedStep(line)
+                Some(VariableStep(chrom, span, buf.toArray))
+              case "variableStep" =>
+                nextunit = VariableStep(line)
+                Some(VariableStep(chrom, span, buf.toArray))
+              case _ =>
+                buf += Tuple2(p(0).toLong, p(1).toDouble)
+                if(buf.length >= maxsize) Some(VariableStep(chrom, span, buf.toArray))
             }
-            if (buf.nonEmpty) Some(VariableStep(chrom, span, buf.toArray))
-            else {
-              s.close()
-              None
+          }
+          if (buf.nonEmpty) Some(VariableStep(chrom, span, buf.toArray))
+          else {
+            s.close()
+            None
+          }
+        case FixedStep(chrom, start, step, span, _) =>
+          throw new UnsupportedOperationException
+          /*val buf = new ArrayBuffer[Double]()
+          for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
+            p(0) match {
+              case "fixedStep" =>
+                nextunit = FixedStep(line)
+                Some(FixedStep(chrom, start, step, span, buf.toArray))
+              case "variableStep" =>
+                nextunit = VariableStep(line)
+                Some(FixedStep(chrom, start, step, span, buf.toArray))
+              case _ =>
+                buf += p(0).toDouble
+                if(buf.length >= maxsize) Some(FixedStep(chrom, start, step, span, buf.toArray))
             }
-          case FixedStep(chrom, start, step, span, _) =>
-            val buf = new ArrayBuffer[Double]()
-            for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
-              p(0) match {
-                case "fixedStep" =>
-                  nextunit = FixedStep(line)
-                  val tmp = FixedStep(chrom, start, step, span, buf.toArray)
-                  buf.clear()
-                  return Some(tmp)
-                case "variableStep" =>
-                  nextunit = VariableStep(line)
-                  val tmp = FixedStep(chrom, start, step, span, buf.toArray)
-                  buf.clear()
-                  return Some(tmp)
-                case _ =>
-                  buf += p(0).toDouble
-              }
-            }
-            if (buf.nonEmpty) Some(FixedStep(chrom, start, step, span, buf.toArray))
-            else {
-              s.close()
-              None
-            }
-        }
-    })
+          }
+          if (buf.nonEmpty) Some(FixedStep(chrom, start, step, span, buf.toArray))
+          else {
+            s.close()
+            None
+          }*/
+      }
+    }
+  )
 
 
 }
