@@ -10,8 +10,8 @@ class WigTest extends FunSuite {
   }
   test("honban"){
     val fi = bigSource("src/test/resources/chr21.head10000.bls.wig")
-    val its = WigIterator.fromSource(fi).merge().map(_.marginalize(2)).iterator
-    val x1 = its.next()
+    val its = WigIterator.fromSource(fi)
+    assert(its.map{_.length}.toArray sameElements Array(2048, 2048, 2048, 1429, 2048, 375))
   }
   test("bedfilter"){
     val fwig = bigSource("src/test/resources/biformat/sample.var.wig")

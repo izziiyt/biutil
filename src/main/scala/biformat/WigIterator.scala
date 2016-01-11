@@ -262,13 +262,13 @@ object WigIterator {
             p(0) match {
               case "fixedStep" =>
                 nextunit = FixedStep(line)
-                Some(VariableStep(chrom, span, buf.toArray))
+                return Some(VariableStep(chrom, span, buf.toArray))
               case "variableStep" =>
                 nextunit = VariableStep(line)
-                Some(VariableStep(chrom, span, buf.toArray))
+                return Some(VariableStep(chrom, span, buf.toArray))
               case _ =>
                 buf += Tuple2(p(0).toLong, p(1).toDouble)
-                if(buf.length >= maxsize) Some(VariableStep(chrom, span, buf.toArray))
+                if(buf.length >= maxsize) return Some(VariableStep(chrom, span, buf.toArray))
             }
           }
           if (buf.nonEmpty) Some(VariableStep(chrom, span, buf.toArray))
