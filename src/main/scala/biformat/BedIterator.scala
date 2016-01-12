@@ -6,7 +6,7 @@ import scala.io.Source
 
 final class BedIterator(val its: Iterator[BedLine]) extends BlockIterator[BedLine] {
   def merge(n: Int): BedIterator = new BedIterator(mergedIterator(n))
-  def append(x: BedLine, y: BedLine) = throw UnsupportedOperationException
+  def append(x: BedLine, y: BedLine) = throw new UnsupportedOperationException
 }
 
 object BedIterator {
@@ -22,7 +22,7 @@ object BedIterator {
       def hasNext: Boolean = nextOne.isDefined
 
       def next(): BedLine = {
-        if (!hasNext) throw NoSuchElementException
+        if (!hasNext) throw new NoSuchElementException
         else {
           val tmp = nextOne.get
           nextOne = gen()

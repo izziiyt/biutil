@@ -39,7 +39,7 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
       protected var nextOne: Option[WigUnit] = gen()
 
       def next(): WigUnit = {
-        if (!hasNext) throw NoSuchElementException
+        if (!hasNext) throw new NoSuchElementException
         else {
           val tmp = nextOne.get
           nextOne = gen()
@@ -80,7 +80,7 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
       case VariableStep(_, _, lines) =>
         lines.foreach{case (_,x) => vec((x * size / max).toInt) += 1}
       case FixedStep(_, _, _, _, _) =>
-        throw UnsupportedOperationException
+        throw new UnsupportedOperationException
     }
     vec
   }
@@ -149,7 +149,7 @@ object WigIterator {
     def +(that: WigUnit): WigUnit = {
       that match {
         case VariableStep(_, _, xs) => VariableStep(chrom, span, lines ++ xs)
-        case _ => throw UnsupportedOperationException
+        case _ => throw new UnsupportedOperationException
       }
     }
 
@@ -214,11 +214,11 @@ object WigIterator {
     def +(that: WigUnit): WigUnit =
       that match {
         case FixedStep(_,_,_,_,ys) => FixedStep(chrom, start, step, span, lines ++ ys)
-        case _ => throw UnsupportedOperationException
+        case _ => throw new UnsupportedOperationException
       }
 
     def interSection(bed: BedLine): Option[FixedStep] = {
-      throw UnsupportedOperationException
+      throw new UnsupportedOperationException
     }
   }
 
@@ -258,7 +258,9 @@ object WigIterator {
       def hasNext: Boolean = nextOne.isDefined
 
       def next(): WigUnit = {
-        if (!hasNext) throw NoSuchElementException
+        if (!hasNext) {
+          throw new NoSuchElementException
+        }
         else {
           val tmp = nextOne.get
           nextOne = gen()

@@ -168,7 +168,7 @@ object MafIterator {
       def hasNext = nextOne.isDefined
 
       def next(): MafUnit = {
-        if (!hasNext) throw NoSuchElementException
+        if (!hasNext) throw new NoSuchElementException
         else {
           val tmp = nextOne.get
           nextOne = nexti()

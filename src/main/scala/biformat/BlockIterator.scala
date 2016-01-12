@@ -26,7 +26,7 @@ trait BlockIterator[T <: Block] extends Iterable[T] with TraversableOnce[T]{
 
     protected var nextOne: Option[T] = gen()
     def next(): T = {
-      if (!hasNext) throw NoSuchElementException
+      if (!hasNext) throw new NoSuchElementException
       else {
         val tmp = nextOne.get
         nextOne = gen()
