@@ -1,5 +1,7 @@
 package biformat
 
+import java.util.NoSuchElementException
+
 /**
   * Bioinformatics format UI.
   */
@@ -24,7 +26,7 @@ trait BlockIterator[T <: Block] extends Iterable[T] with TraversableOnce[T]{
 
     protected var nextOne: Option[T] = gen()
     def next(): T = {
-      if (!hasNext) sys.error("Nothing in next.")
+      if (!hasNext) throw NoSuchElementException
       else {
         val tmp = nextOne.get
         nextOne = gen()

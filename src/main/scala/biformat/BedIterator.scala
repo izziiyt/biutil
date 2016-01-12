@@ -1,10 +1,12 @@
 package biformat
 
+import java.util.NoSuchElementException
+
 import scala.io.Source
 
 final class BedIterator(val its: Iterator[BedLine]) extends BlockIterator[BedLine] {
   def merge(n: Int): BedIterator = new BedIterator(mergedIterator(n))
-  def append(x: BedLine, y: BedLine) = sys.error("BedLine can't be appendable.")
+  def append(x: BedLine, y: BedLine) = throw UnsupportedOperationException
 }
 
 object BedIterator {
@@ -20,7 +22,7 @@ object BedIterator {
       def hasNext: Boolean = nextOne.isDefined
 
       def next(): BedLine = {
-        if (!hasNext) sys.error("Nothing in next.")
+        if (!hasNext) throw NoSuchElementException
         else {
           val tmp = nextOne.get
           nextOne = gen()
@@ -37,10 +39,12 @@ object BedIterator {
 
     })
 }
+
 case class BedLine(chr: String, start: Long, end: Long, name:String, score: Double, strand: Char) extends Block {
   def length = (end - start).toInt
   def appendableWith(that: Block): Boolean = false
   override def toString = chr + '\t' + start + '\t' + end + '\t' + name + '\t' + score.toInt + '\t' + strand
+  def hasOverlap(that:BedLine): Boolean = this.start < that.end && this.end > that.start
 }
 
 object BedLine {

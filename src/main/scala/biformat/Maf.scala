@@ -1,5 +1,7 @@
 package biformat
 
+import java.util.NoSuchElementException
+
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import alignment.Base
@@ -166,7 +168,7 @@ object MafIterator {
       def hasNext = nextOne.isDefined
 
       def next(): MafUnit = {
-        if (!hasNext) sys.error("Nothing in next.")
+        if (!hasNext) throw NoSuchElementException
         else {
           val tmp = nextOne.get
           nextOne = nexti()
@@ -182,7 +184,7 @@ object MafIterator {
               buf += MafLine.fromString(p)
             case "a" if buf.nonEmpty =>
               return Some(MafUnit(buf.toList, target))
-            case _ => Unit
+            case _ =>
           }
         }
         if (buf.nonEmpty) Some(MafUnit(buf.toList, target))

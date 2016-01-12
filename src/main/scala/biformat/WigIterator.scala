@@ -1,5 +1,7 @@
 package biformat
 
+import java.util.NoSuchElementException
+
 import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
 import scala.annotation.tailrec
 import scala.collection.mutable.{ListBuffer, ArrayBuffer}
@@ -25,7 +27,7 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
     */
   override def append(x: WigUnit, y: WigUnit): WigUnit = WigUnit.append(x,y)
 
-  def filterWithBed(x:Iterable[BedLine]): WigIterator = new WigIterator(
+  def filterWithBed(x: Iterable[BedLine]): WigIterator = new WigIterator(
     new Iterator[WigUnit] {
 
       val bit = x.iterator
@@ -37,7 +39,7 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
       protected var nextOne: Option[WigUnit] = gen()
 
       def next(): WigUnit = {
-        if (!hasNext) sys.error("Nothing in next.")
+        if (!hasNext) throw NoSuchElementException
         else {
           val tmp = nextOne.get
           nextOne = gen()
@@ -53,8 +55,6 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
           def nextb = if (bit.hasNext) Some(bit.next()) else None
           def nextw = if (its.hasNext) Some(its.next()) else None
           (wigop, bedop) match {
-            case (None, _) => (None, None, None)
-            case (_, None) => (None, None, None)
             case (Some(wig), Some(bed)) =>
               if (wig.chrom != bed.chr) f(wigop, nextb)
               else wig.interSection(bed) match {
@@ -63,6 +63,7 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
                 case tmp =>
                   if (bed.end < wig.end) (tmp, wigop, nextb) else (tmp, nextw, bedop)
               }
+            case (None, _) | (_, None) => (None, None, None)
           }
         }
         val (v1, v2, v3) = f(wigBuf, bedBuf)
@@ -79,7 +80,7 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
       case VariableStep(_, _, lines) =>
         lines.foreach{case (_,x) => vec((x * size / max).toInt) += 1}
       case FixedStep(_, _, _, _, _) =>
-        sys.error("not supported.")
+        throw UnsupportedOperationException
     }
     vec
   }
@@ -116,20 +117,22 @@ object WigIterator {
 
   case class VariableStep(chrom: String, span: Int, lines: Array[(Long, Double)]) extends WigUnit {
     type T = (Long, Double)
+
     def start = lines.head._1
+
     def end = lines.last._1 + span
+
     def marginalize(wing: Int) = {
       require(span == 1)
       @tailrec
       def f(xs: List[(Long, Double)],
             ys: ListBuffer[(Long, Double)],
-            zs: List[(Long, Double)]): List[(Long, Double)] =
-      {
+            zs: List[(Long, Double)]): List[(Long, Double)] = {
         def lwlim = ys.head._1
         def uplim = lwlim + (2 * wing)
-        if(ys.last._1 == uplim) f(xs, ys.tail, (lwlim + wing, ys.foldLeft(0.0){(n, x) => n + x._2}) :: zs)
-        else if(xs.isEmpty) zs.reverse
-        else if(xs.head._1 <= uplim) f(xs.tail, ys :+ xs.head, zs)
+        if (ys.last._1 == uplim) f(xs, ys.tail, (lwlim + wing, ys.foldLeft(0.0) { (n, x) => n + x._2 }) :: zs)
+        else if (xs.isEmpty) zs.reverse
+        else if (xs.head._1 <= uplim) f(xs.tail, ys :+ xs.head, zs)
         else f(xs.tail, ListBuffer(xs.head), zs)
       }
       val tmp = f(lines.tail.toList, ListBuffer(lines.head), Nil)
@@ -145,17 +148,26 @@ object WigIterator {
 
     def +(that: WigUnit): WigUnit = {
       that match {
-        case VariableStep(_,_,xs) => VariableStep(chrom, span, lines ++ xs)
-        case _ => sys.error("VariableStep only.")
+        case VariableStep(_, _, xs) => VariableStep(chrom, span, lines ++ xs)
+        case _ => throw UnsupportedOperationException
       }
     }
 
     def interSection(bed: BedLine): Option[VariableStep] = {
       if (end <= bed.start || start >= bed.end || chrom != bed.chr) None
-      else
-        Some(VariableStep(chrom, span,
-          lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end))
-        )
+      else {
+        try {
+          Some(VariableStep(chrom, span,
+            lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end))
+          )
+        }
+        catch{
+          case e:java.util.NoSuchElementException =>
+            println(end + " " + bed.start + " " + start + " " + bed.end + chrom + " " + bed.chr)
+            e.printStackTrace()
+            None
+        }
+      }
     }
   }
 
@@ -202,12 +214,11 @@ object WigIterator {
     def +(that: WigUnit): WigUnit =
       that match {
         case FixedStep(_,_,_,_,ys) => FixedStep(chrom, start, step, span, lines ++ ys)
-        case _ => sys.error("FixedStep only.")
+        case _ => throw UnsupportedOperationException
       }
 
     def interSection(bed: BedLine): Option[FixedStep] = {
-      sys.error("not supported.")
-      Some(this)
+      throw UnsupportedOperationException
     }
   }
 
@@ -247,7 +258,7 @@ object WigIterator {
       def hasNext: Boolean = nextOne.isDefined
 
       def next(): WigUnit = {
-        if (!hasNext) sys.error("Nothing in next.")
+        if (!hasNext) throw NoSuchElementException
         else {
           val tmp = nextOne.get
           nextOne = gen()
@@ -262,10 +273,10 @@ object WigIterator {
             p(0) match {
               case "fixedStep" =>
                 nextunit = FixedStep(line)
-                return Some(VariableStep(chrom, span, buf.toArray))
+                if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
               case "variableStep" =>
                 nextunit = VariableStep(line)
-                return Some(VariableStep(chrom, span, buf.toArray))
+                if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
               case _ =>
                 buf += Tuple2(p(0).toLong, p(1).toDouble)
                 if(buf.length >= maxsize) return Some(VariableStep(chrom, span, buf.toArray))
