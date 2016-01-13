@@ -1,12 +1,13 @@
 package biformat
 
 import java.util.NoSuchElementException
-
+import biformat.BedIterator.BedLine
+import biformat.BlockIterator.MergedIterator
 import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
 import scala.annotation.tailrec
 import scala.collection.mutable.{ListBuffer, ArrayBuffer}
 import scala.io.Source
-
+/*
 /**
   * can be managed with functional programming order
   * @param its body of iterator
@@ -85,6 +86,78 @@ final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.
     vec
   }
 
+}*/
+
+abstract class WigIterator extends BlockIterator[WigUnit]{
+
+  /**
+    * non safe opperation
+    * @param x one WigUnit
+    * @param y the other WigUnit
+    * @return assemble of x and y
+    */
+  def append(x: WigUnit, y: WigUnit): WigUnit = WigUnit.append(x,y)
+
+  def merged(_maxSize: Int) = new {
+    val maxSize = _maxSize
+    val its = this
+  } with WigIterator with MergedIterator[WigUnit]
+
+  def filterWithBed(x: Iterator[BedLine])(implicit wit: WigIterator = this): WigIterator = new WigIterator{
+
+      val bit = x
+
+      protected var bedBuf: Option[BedLine] = if (bit.hasNext) Some(bit.next()) else None
+
+      protected var wigBuf: Option[WigUnit] = if (wit.hasNext) Some(wit.next()) else None
+
+      protected var nextOne: Option[WigUnit] = gen()
+
+      def next(): WigUnit = {
+        if (!hasNext) throw new NoSuchElementException
+        else {
+          val tmp = nextOne.get
+          nextOne = gen()
+          tmp
+        }
+      }
+
+      def hasNext: Boolean = nextOne.isDefined
+
+      protected def gen(): Option[WigUnit] = {
+        @tailrec
+        def f(wigop: Option[WigUnit], bedop: Option[BedLine]): (Option[WigUnit], Option[WigUnit], Option[BedLine]) = {
+          def nextb = if (bit.hasNext) Some(bit.next()) else None
+          def nextw = if (wit.hasNext) Some(wit.next()) else None
+          (wigop, bedop) match {
+            case (Some(wig), Some(bed)) =>
+              if (wig.chrom != bed.chr) f(wigop, nextb)
+              else wig.interSection(bed) match {
+                case None =>
+                  if (wig.end <= bed.start) f(nextw, bedop) else f(wigop, nextb)
+                case tmp =>
+                  if (bed.end < wig.end) (tmp, wigop, nextb) else (tmp, nextw, bedop)
+              }
+            case (None, _) | (_, None) => (None, None, None)
+          }
+        }
+        val (v1, v2, v3) = f(wigBuf, bedBuf)
+        wigBuf = v2
+        bedBuf = v3
+        v1
+      }
+    }
+
+  def hist(size: Int = 100, max: Double = 1.0): Array[Int] =  {
+    val vec = Array.fill[Int](size)(0)
+    this.foreach{
+      case VariableStep(_, _, lines) =>
+        lines.foreach{case (_,x) => vec((x * size / max).toInt) += 1}
+      case FixedStep(_, _, _, _, _) =>
+        throw new UnsupportedOperationException
+    }
+    vec
+  }
 }
 
 object WigIterator {
@@ -233,10 +306,7 @@ object WigIterator {
     }
   }
 
-  //def fromFile[T](f: String, sep: String = DefaultSep) = new WigIterator (
-  def fromSource(s: Source, maxsize: Int = 2048, sep: String = DefaultSep) = new WigIterator (
-
-    new Iterator[WigUnit] {
+  def fromSource(s: Source, maxsize: Int = 2048, sep: String = DefaultSep) = new WigIterator {
 
       val lines = s.getLines()
 
@@ -291,28 +361,25 @@ object WigIterator {
           }
         case FixedStep(chrom, start, step, span, _) =>
           throw new UnsupportedOperationException
-          /*val buf = new ArrayBuffer[Double]()
-          for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
-            p(0) match {
-              case "fixedStep" =>
-                nextunit = FixedStep(line)
-                Some(FixedStep(chrom, start, step, span, buf.toArray))
-              case "variableStep" =>
-                nextunit = VariableStep(line)
-                Some(FixedStep(chrom, start, step, span, buf.toArray))
-              case _ =>
-                buf += p(0).toDouble
-                if(buf.length >= maxsize) Some(FixedStep(chrom, start, step, span, buf.toArray))
-            }
+        /*val buf = new ArrayBuffer[Double]()
+        for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
+          p(0) match {
+            case "fixedStep" =>
+              nextunit = FixedStep(line)
+              Some(FixedStep(chrom, start, step, span, buf.toArray))
+            case "variableStep" =>
+              nextunit = VariableStep(line)
+              Some(FixedStep(chrom, start, step, span, buf.toArray))
+            case _ =>
+              buf += p(0).toDouble
+              if(buf.length >= maxsize) Some(FixedStep(chrom, start, step, span, buf.toArray))
           }
-          if (buf.nonEmpty) Some(FixedStep(chrom, start, step, span, buf.toArray))
-          else {
-            s.close()
-            None
-          }*/
+        }
+        if (buf.nonEmpty) Some(FixedStep(chrom, start, step, span, buf.toArray))
+        else {
+          s.close()
+          None
+        }*/
       }
     }
-  )
-
-
 }

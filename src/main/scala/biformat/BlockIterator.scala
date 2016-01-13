@@ -6,25 +6,29 @@ import java.util.NoSuchElementException
   * Bioinformatics format-managing interface.
   */
 
-trait BlockIterator[T <: Block] extends Iterable[T] with TraversableOnce[T]{
-
-  def its: Iterator[T]
-
-  def iterator = its
-  /**
-    * @param maxSize cancel concatenation if concatenated Block size over the mazSize
-    * */
-  def merge(maxSize: Int): BlockIterator[T]
+trait BlockIterator[T <: Block] extends Iterator[T] {
+  import BlockIterator._
   /**
     * Create Iterator[Block]
     * concatenates adjacent Blocks if they are appnedableWith
     * [[Block.appendableWith]]
     * */
-  protected def mergedIterator(maxSize: Int): Iterator[T] = new Iterator[T] {
+  def merged(maxSize: Int): MergedIterator[T]
+
+  protected def append(x: T, y: T): T
+}
+
+object BlockIterator {
+  trait MergedIterator[T <: Block] extends BlockIterator[T]{
+
+    def maxSize: Int
+
+    def its: BlockIterator[T]
 
     protected var buf: Option[T] = None
 
     protected var nextOne: Option[T] = gen()
+
     def next(): T = {
       if (!hasNext) throw new NoSuchElementException
       else {
@@ -37,7 +41,7 @@ trait BlockIterator[T <: Block] extends Iterable[T] with TraversableOnce[T]{
     def hasNext: Boolean = nextOne.isDefined
 
     protected def gen(): Option[T] = {
-      for (unit <- its) {
+      for(unit <- its) {
         buf match {
           case Some(x) if x.appendableWith(unit) && x.length + unit.length < maxSize =>
             buf = Some(append(x,unit))
@@ -58,8 +62,6 @@ trait BlockIterator[T <: Block] extends Iterable[T] with TraversableOnce[T]{
       }
     }
   }
-
-  protected def append(x: T, y: T): T
 }
 
 /**
