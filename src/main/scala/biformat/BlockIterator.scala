@@ -3,7 +3,7 @@ package biformat
 import java.util.NoSuchElementException
 
 /**
-  * Bioinformatics format UI.
+  * Bioinformatics format-managing interface.
   */
 
 trait BlockIterator[T <: Block] extends Iterable[T] with TraversableOnce[T]{

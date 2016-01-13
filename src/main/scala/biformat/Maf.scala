@@ -99,10 +99,6 @@ case class MafUnit(lines: Map[String, MafLine], target: String) extends Block {
     case _ => false
   }
 
-  /**
-    * @return iterable lines
-    */
-  @deprecated
   def seqs: List[Array[Base]] = lines.valuesIterator.map(_.seq).toList
 }
 
@@ -178,7 +174,7 @@ object MafIterator {
       def nexti(): Option[MafUnit] = {
         val buf = new ListBuffer[MafLine]()
         if (s.isEmpty) return None
-        for (line <- lines; if line != "" && !line.startsWith("#"); p = line.split(sep)) {
+        for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
           p(0) match {
             case "s" =>
               buf += MafLine.fromString(p)
@@ -194,5 +190,6 @@ object MafIterator {
         }
       }
     }
-      , target)
+      , target
+    )
 }
