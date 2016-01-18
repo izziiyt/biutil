@@ -1,8 +1,7 @@
 package biformat
 
-import java.util.NoSuchElementException
 import biformat.BedIterator.BedLine
-import biformat.BlockIterator.MergedIterator
+import biformat.BlockIterator.{MergedIterator, GenBlockIterator}
 import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
 import scala.annotation.tailrec
 import scala.collection.mutable.{ListBuffer, ArrayBuffer}
@@ -23,17 +22,16 @@ abstract class WigIterator extends BlockIterator[WigUnit]{
     val its = this
   } with WigIterator with MergedIterator[WigUnit]
 
-  def filterWithBed(x: Iterator[BedLine])(implicit wit: WigIterator = this): WigIterator = new WigIterator{
-
-    val bit = x
+  def filterWithBed(bit: Iterator[BedLine])(implicit wit: WigIterator = this): WigIterator =
+    new WigIterator with GenBlockIterator[WigUnit]{
 
     protected var bedBuf: Option[BedLine] = if (bit.hasNext) Some(bit.next()) else None
 
     protected var wigBuf: Option[WigUnit] = if (wit.hasNext) Some(wit.next()) else None
 
-    protected var nextOne: Option[WigUnit] = gen()
+    protected var nextOne: Option[WigUnit] = None
 
-    def next(): WigUnit = {
+    /*def next(): WigUnit = {
       if (!hasNext) throw new NoSuchElementException
       else {
         val tmp = nextOne.get
@@ -43,7 +41,7 @@ abstract class WigIterator extends BlockIterator[WigUnit]{
     }
 
     def hasNext: Boolean = nextOne.isDefined
-
+*/
     protected def gen(): Option[WigUnit] = {
       @tailrec
       def f(wigop: Option[WigUnit], bedop: Option[BedLine]): (Option[WigUnit], Option[WigUnit], Option[BedLine]) = {
@@ -83,6 +81,11 @@ abstract class WigIterator extends BlockIterator[WigUnit]{
 object WigIterator {
 
   val DefaultSep = """\p{javaWhitespace}+"""
+
+  implicit def toWigIteretor(it: Iterator[WigUnit]): WigIterator = new WigIterator {
+    override def next(): WigUnit = it.next()
+    override def hasNext: Boolean = it.hasNext
+  }
 
   /**
     * be managed in [[WigIterator]]
@@ -226,25 +229,14 @@ object WigIterator {
     }
   }
 
-  def fromSource(s: Source, maxsize: Int = 2048, sep: String = DefaultSep) = new WigIterator {
+  def fromSource(s: Source, maxsize: Int = 2048, sep: String = DefaultSep) =
+    new WigIterator with GenBlockIterator[WigUnit]{
 
     protected val lines = s.getLines()
 
     protected var nextunit: WigUnit = null
 
     protected var nextOne: Option[WigUnit] = None
-
-    def hasNext: Boolean = nextOne.isDefined || {
-      nextOne = gen()
-      nextOne.isDefined
-    }
-
-    def next(): WigUnit = {
-      if(!hasNext) throw new NoSuchElementException
-      val tmp = nextOne.get
-      nextOne = None
-      tmp
-    }
 
     protected def gen(): Option[WigUnit] = nextunit match {
       case VariableStep(chrom, span, _) =>

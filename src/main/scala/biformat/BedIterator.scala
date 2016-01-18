@@ -1,16 +1,10 @@
 package biformat
 
-import java.util.NoSuchElementException
 import biformat.BedIterator.BedLine
-import biformat.BlockIterator.MergedIterator
+import biformat.BlockIterator.{GenBlockIterator, MergedIterator}
 
 import scala.io.Source
-/*
-final class BedIterator(val its: Iterator[BedLine]) extends BlockIterator[BedLine] {
-  def merge(n: Int): BedIterator = new BedIterator(mergedIterator(n))
-  def append(x: BedLine, y: BedLine) = throw new UnsupportedOperationException
-}
-*/
+
 abstract class BedIterator extends BlockIterator[BedLine]{
   def append(x: BedLine, y: BedLine) = throw new UnsupportedOperationException
   def merged(_maxSize: Int) = new {
@@ -21,24 +15,19 @@ abstract class BedIterator extends BlockIterator[BedLine]{
 
 object BedIterator {
 
+  implicit def toBedIterator(it: Iterator[BedLine]): BedIterator = new BedIterator {
+    override def next(): BedLine = it.next()
+    override def hasNext: Boolean = it.hasNext
+  }
+
   val DefaultSep = """\p{javaWhitespace}+"""
 
-  def fromSource(s: Source, sep: String = DefaultSep) = new BedIterator {
+  def fromSource(s: Source, sep: String = DefaultSep) =
+    new BedIterator with GenBlockIterator[BedLine] {
 
     val lines = s.getLines()
 
-    protected var nextOne: Option[BedLine] = gen()
-
-    def hasNext: Boolean = nextOne.isDefined
-
-    def next(): BedLine = {
-      if (!hasNext) throw new NoSuchElementException
-      else {
-        val tmp = nextOne.get
-        nextOne = gen()
-        tmp
-      }
-    }
+    protected var nextOne: Option[BedLine] = None
 
     protected def gen(): Option[BedLine] = {
       for(line <- lines; if !line.startsWith("#") && line.nonEmpty){
@@ -46,7 +35,6 @@ object BedIterator {
       }
       None
     }
-
   }
 
   case class BedLine(chr: String, start: Long, end: Long, name:String, score: Double, strand: Char) extends Block {

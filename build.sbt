@@ -29,7 +29,8 @@ scalacOptions ++= Seq(
   "-optimize",
   "-deprecation",
   "-feature",
-  "-unchecked"
+  "-unchecked",
+  "-language:implicitConversions"
 )
 
 target in Compile in doc := baseDirectory.value.getParentFile / "izziiyt.github.io/biutil/api"

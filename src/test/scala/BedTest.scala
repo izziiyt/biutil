@@ -12,7 +12,7 @@ class BedTest extends FunSuite{
   }
   test("merger"){
     val fi = bigSource("src/test/resources/biformat/sample.bed")
-    val its = BedIterator.fromSource(fi).merged(10)
+    val its: BedIterator = BedIterator.fromSource(fi).merged(10).filter(_.length != 0)
     its.foreach{_ => Unit}
   }
 }

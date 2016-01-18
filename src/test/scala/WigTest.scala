@@ -4,7 +4,7 @@ import org.scalatest.FunSuite
 class WigTest extends FunSuite {
   test("merger"){
     val fi = bigSource("src/test/resources/biformat/sample.var.wig")
-    val its = WigIterator.fromSource(fi).merged(10).map(_.marginalize(2))
+    val its:WigIterator = WigIterator.fromSource(fi).merged(10).map(_.marginalize(2))
     val x1 = its.next()
     assert(x1.lines sameElements  Array((95,22.0),(96,23.0)))
   }

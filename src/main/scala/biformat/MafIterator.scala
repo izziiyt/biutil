@@ -1,7 +1,6 @@
 package biformat
 
-import java.util.NoSuchElementException
-import biformat.BlockIterator.MergedIterator
+import biformat.BlockIterator.{GenBlockIterator, MergedIterator}
 import biformat.MafIterator.MafUnit
 import scala.collection.mutable.ListBuffer
 import alignment.Base
@@ -10,43 +9,22 @@ import scala.io.Source
 /**
   * provides some method for manage Maf format files.
   * */
-/*object Maf {
-  @deprecated
-  def readMaf(mf: String, per: Int = 512): Array[List[Array[Base]]] = {
-    val it = MafIterator.fromMSA(Source.fromFile(mf), "hg19")
-    val totalunit = it.reduceLeft { (n, u) => n + u }
-    val bases = totalunit.seqs
-    val tmp = div(bases, per)
-    tmp
-  }
 
-  def div(seqs: List[Array[Base]], size: Int): Array[List[Array[Base]]] = {
-    @tailrec
-    def f(xs: List[Array[Base]], ys: List[List[Array[Base]]], index: Int): Array[List[Array[Base]]] = {
-      if (xs.head.isEmpty) ys.reverse.toArray
-      else {
-        val (target, reserve) = xs.map { x => x.splitAt(index) }.unzip
-        f(reserve, target :: ys, index)
-      }
-    }
-    f(seqs, Nil, size)
-  }
-}*/
-abstract class MafIterator(val target: String) extends BlockIterator[MafUnit]{
+abstract class MafIterator extends BlockIterator[MafUnit]{
   def append(x: MafUnit, y: MafUnit): MafUnit = x + y
   def merged(_maxSize: Int) = new {
     val maxSize = _maxSize
     val its = this
-  } with MafIterator(target) with MergedIterator[MafUnit]
+  } with MafIterator with MergedIterator[MafUnit]
 }
 
 object MafIterator {
-  /**
-    * a component appeared in .maf-fomat files.
-    * iterably managed by MafIterator [[MafIterator]]
-    * @param lines species -> [[alignment.Base]] array
-    * @param target target species
-    */
+
+  implicit def toMafIterator(it: Iterator[MafUnit]): MafIterator = new MafIterator{
+    def hasNext = it.hasNext
+    def next() = it.next()
+  }
+
   case class MafUnit(lines: Map[String, MafLine], target: String) extends Block {
     val length = lines.values.head.length
 
@@ -95,6 +73,7 @@ object MafIterator {
       }
       MafUnit(newlines.toMap, target)
     }
+
     /**
       * @param that next MafUnit
       * @return whether this and that are able to be concatenated
@@ -154,25 +133,15 @@ object MafIterator {
     * @constructor
       * We recommend you to get Source by [[biformat.bigSource]] because ordinary maf-format files are big.
     * */
-  def fromSource(s : Source, _target: String, sep: String = """\p{javaWhitespace}+""") = new MafIterator(_target) {
+  def fromSource(s : Source, target: String, sep: String = """\p{javaWhitespace}+""") =
+    new MafIterator with GenBlockIterator[MafUnit] {
 
     val lines = s.getLines()
 
-    protected var nextOne: Option[MafUnit] = nexti()
+    protected var nextOne: Option[MafUnit] = None
 
-    def hasNext = nextOne.isDefined
-
-    def next(): MafUnit = {
-      if (!hasNext) throw new NoSuchElementException
-      else {
-        val tmp = nextOne.get
-        nextOne = nexti()
-        tmp
-      }
-    }
-    def nexti(): Option[MafUnit] = {
+    def gen(): Option[MafUnit] = {
       val buf = new ListBuffer[MafLine]()
-      if (s.isEmpty) return None
       for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
         p(0) match {
           case "s" =>
@@ -183,10 +152,7 @@ object MafIterator {
         }
       }
       if (buf.nonEmpty) Some(MafUnit(buf.toList, target))
-      else {
-        s.close()
-        None
-      }
+      else None
     }
   }
 }
