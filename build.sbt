@@ -1,10 +1,9 @@
 organization := "izziiyt"
-version := "1.0.0-SNAPSHOT"
+version := "1.1.0-SNAPSHOT"
 name := "biutil"
 scalaVersion := Common.scalaVersion
 crossScalaVersions  := Common.crossScalaVersions
 resolvers += Resolver.sonatypeRepo("releases")
-//addCompilerPlugin("org.scalamacros" %% "paradise" % "2.0.1" cross CrossVersion.full)
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.1.3" % "test",

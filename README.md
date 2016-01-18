@@ -14,9 +14,9 @@ For managing bio-specific strings, such as DNA or Protein.
 
 ####biformat
 
-For managing bio-specific format files, such as BED or WIG.  
+For managing bio-specific format files, BED, WIG and MAF.  
 These data are assumed as too big to put in memory.  
-Because of that, Iterator is adopted.
+Because of that, Iterator extended Class is adopted.
 
 ####optimization
 
