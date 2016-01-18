@@ -7,86 +7,6 @@ import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
 import scala.annotation.tailrec
 import scala.collection.mutable.{ListBuffer, ArrayBuffer}
 import scala.io.Source
-/*
-/**
-  * can be managed with functional programming order
-  * @param its body of iterator
-  */
-final class WigIterator protected (val its: Iterator[WigUnit]) extends biformat.BlockIterator[WigUnit] {
-  /**
-    * concatenates adjacent Wigunit
-    * @param n maximum length
-    * @return concatenated WigUnits Iterator
-    */
-  override def merge(n: Int = 10000): WigIterator = new WigIterator(mergedIterator(n))
-
-  /**
-    * non safe opperation
-    * @param x one WigUnit
-    * @param y the other WigUnit
-    * @return assemble of x and y
-    */
-  override def append(x: WigUnit, y: WigUnit): WigUnit = WigUnit.append(x,y)
-
-  def filterWithBed(x: Iterable[BedLine]): WigIterator = new WigIterator(
-    new Iterator[WigUnit] {
-
-      val bit = x.iterator
-
-      protected var bedBuf: Option[BedLine] = if (bit.hasNext) Some(bit.next()) else None
-
-      protected var wigBuf: Option[WigUnit] = if (its.hasNext) Some(its.next()) else None
-
-      protected var nextOne: Option[WigUnit] = gen()
-
-      def next(): WigUnit = {
-        if (!hasNext) throw new NoSuchElementException
-        else {
-          val tmp = nextOne.get
-          nextOne = gen()
-          tmp
-        }
-      }
-
-      def hasNext: Boolean = nextOne.isDefined
-
-      protected def gen(): Option[WigUnit] = {
-        @tailrec
-        def f(wigop: Option[WigUnit], bedop: Option[BedLine]): (Option[WigUnit], Option[WigUnit], Option[BedLine]) = {
-          def nextb = if (bit.hasNext) Some(bit.next()) else None
-          def nextw = if (its.hasNext) Some(its.next()) else None
-          (wigop, bedop) match {
-            case (Some(wig), Some(bed)) =>
-              if (wig.chrom != bed.chr) f(wigop, nextb)
-              else wig.interSection(bed) match {
-                case None =>
-                  if (wig.end <= bed.start) f(nextw, bedop) else f(wigop, nextb)
-                case tmp =>
-                  if (bed.end < wig.end) (tmp, wigop, nextb) else (tmp, nextw, bedop)
-              }
-            case (None, _) | (_, None) => (None, None, None)
-          }
-        }
-        val (v1, v2, v3) = f(wigBuf, bedBuf)
-        wigBuf = v2
-        bedBuf = v3
-        v1
-      }
-    }
-  )
-
-  def hist(size: Int = 100, max: Double = 1.0): Array[Int] =  {
-    val vec = Array.fill[Int](size)(0)
-    its.foreach{
-      case VariableStep(_, _, lines) =>
-        lines.foreach{case (_,x) => vec((x * size / max).toInt) += 1}
-      case FixedStep(_, _, _, _, _) =>
-        throw new UnsupportedOperationException
-    }
-    vec
-  }
-
-}*/
 
 abstract class WigIterator extends BlockIterator[WigUnit]{
 
@@ -105,48 +25,48 @@ abstract class WigIterator extends BlockIterator[WigUnit]{
 
   def filterWithBed(x: Iterator[BedLine])(implicit wit: WigIterator = this): WigIterator = new WigIterator{
 
-      val bit = x
+    val bit = x
 
-      protected var bedBuf: Option[BedLine] = if (bit.hasNext) Some(bit.next()) else None
+    protected var bedBuf: Option[BedLine] = if (bit.hasNext) Some(bit.next()) else None
 
-      protected var wigBuf: Option[WigUnit] = if (wit.hasNext) Some(wit.next()) else None
+    protected var wigBuf: Option[WigUnit] = if (wit.hasNext) Some(wit.next()) else None
 
-      protected var nextOne: Option[WigUnit] = gen()
+    protected var nextOne: Option[WigUnit] = gen()
 
-      def next(): WigUnit = {
-        if (!hasNext) throw new NoSuchElementException
-        else {
-          val tmp = nextOne.get
-          nextOne = gen()
-          tmp
-        }
-      }
-
-      def hasNext: Boolean = nextOne.isDefined
-
-      protected def gen(): Option[WigUnit] = {
-        @tailrec
-        def f(wigop: Option[WigUnit], bedop: Option[BedLine]): (Option[WigUnit], Option[WigUnit], Option[BedLine]) = {
-          def nextb = if (bit.hasNext) Some(bit.next()) else None
-          def nextw = if (wit.hasNext) Some(wit.next()) else None
-          (wigop, bedop) match {
-            case (Some(wig), Some(bed)) =>
-              if (wig.chrom != bed.chr) f(wigop, nextb)
-              else wig.interSection(bed) match {
-                case None =>
-                  if (wig.end <= bed.start) f(nextw, bedop) else f(wigop, nextb)
-                case tmp =>
-                  if (bed.end < wig.end) (tmp, wigop, nextb) else (tmp, nextw, bedop)
-              }
-            case (None, _) | (_, None) => (None, None, None)
-          }
-        }
-        val (v1, v2, v3) = f(wigBuf, bedBuf)
-        wigBuf = v2
-        bedBuf = v3
-        v1
+    def next(): WigUnit = {
+      if (!hasNext) throw new NoSuchElementException
+      else {
+        val tmp = nextOne.get
+        nextOne = gen()
+        tmp
       }
     }
+
+    def hasNext: Boolean = nextOne.isDefined
+
+    protected def gen(): Option[WigUnit] = {
+      @tailrec
+      def f(wigop: Option[WigUnit], bedop: Option[BedLine]): (Option[WigUnit], Option[WigUnit], Option[BedLine]) = {
+        def nextb = if (bit.hasNext) Some(bit.next()) else None
+        def nextw = if (wit.hasNext) Some(wit.next()) else None
+        (wigop, bedop) match {
+          case (Some(wig), Some(bed)) =>
+            if (wig.chrom != bed.chr) f(wigop, nextb)
+            else wig.interSection(bed) match {
+              case None =>
+                if (wig.end <= bed.start) f(nextw, bedop) else f(wigop, nextb)
+              case tmp =>
+                if (bed.end < wig.end) (tmp, wigop, nextb) else (tmp, nextw, bedop)
+            }
+          case (None, _) | (_, None) => (None, None, None)
+        }
+      }
+      val (v1, v2, v3) = f(wigBuf, bedBuf)
+      wigBuf = v2
+      bedBuf = v3
+      v1
+    }
+  }
 
   def hist(size: Int = 100, max: Double = 1.0): Array[Int] =  {
     val vec = Array.fill[Int](size)(0)
@@ -308,78 +228,52 @@ object WigIterator {
 
   def fromSource(s: Source, maxsize: Int = 2048, sep: String = DefaultSep) = new WigIterator {
 
-      val lines = s.getLines()
+    protected val lines = s.getLines()
 
-      protected var nextunit: WigUnit = null
+    protected var nextunit: WigUnit = null
 
-      // define first unit's step mode
-      val line = lines.find(line => line.startsWith("fixed") || line.startsWith("variable"))
-      if(line.isEmpty) sys.error("Input file may not be biformat.maf.wig format.")
-      val p = line.get.split(sep)
-      p(0) match {
-        case "fixedStep" =>
-          nextunit = FixedStep(line.get)
-        case "variableStep" =>
-          nextunit = VariableStep(line.get)
-      }
+    protected var nextOne: Option[WigUnit] = None
 
-      protected var nextOne: Option[WigUnit] = gen()
+    def hasNext: Boolean = nextOne.isDefined || {
+      nextOne = gen()
+      nextOne.isDefined
+    }
 
-      def hasNext: Boolean = nextOne.isDefined
+    def next(): WigUnit = {
+      if(!hasNext) throw new NoSuchElementException
+      val tmp = nextOne.get
+      nextOne = None
+      tmp
+    }
 
-      def next(): WigUnit = {
-        if (!hasNext) {
-          throw new NoSuchElementException
-        }
-        else {
-          val tmp = nextOne.get
-          nextOne = gen()
-          tmp
-        }
-      }
-
-      protected def gen(): Option[WigUnit] = nextunit match {
-        case VariableStep(chrom, span, _) =>
-          val buf = new ArrayBuffer[(Long, Double)]()
-          for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
-            p(0) match {
-              case "fixedStep" =>
-                nextunit = FixedStep(line)
-                if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
-              case "variableStep" =>
-                nextunit = VariableStep(line)
-                if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
-              case _ =>
-                buf += Tuple2(p(0).toLong, p(1).toDouble)
-                if(buf.length >= maxsize) return Some(VariableStep(chrom, span, buf.toArray))
-            }
-          }
-          if (buf.nonEmpty) Some(VariableStep(chrom, span, buf.toArray))
-          else {
-            s.close()
-            None
-          }
-        case FixedStep(chrom, start, step, span, _) =>
-          throw new UnsupportedOperationException
-        /*val buf = new ArrayBuffer[Double]()
+    protected def gen(): Option[WigUnit] = nextunit match {
+      case VariableStep(chrom, span, _) =>
+        val buf = new ArrayBuffer[(Long, Double)]()
         for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
           p(0) match {
             case "fixedStep" =>
               nextunit = FixedStep(line)
-              Some(FixedStep(chrom, start, step, span, buf.toArray))
+              if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
             case "variableStep" =>
               nextunit = VariableStep(line)
-              Some(FixedStep(chrom, start, step, span, buf.toArray))
+              if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
             case _ =>
-              buf += p(0).toDouble
-              if(buf.length >= maxsize) Some(FixedStep(chrom, start, step, span, buf.toArray))
+              buf += Tuple2(p(0).toLong, p(1).toDouble)
+              if(buf.length >= maxsize) return Some(VariableStep(chrom, span, buf.toArray))
           }
         }
-        if (buf.nonEmpty) Some(FixedStep(chrom, start, step, span, buf.toArray))
-        else {
-          s.close()
-          None
-        }*/
-      }
+        if (buf.nonEmpty) Some(VariableStep(chrom, span, buf.toArray))
+        else None
+      case FixedStep(chrom, start, step, span, _) =>
+        throw new UnsupportedOperationException
+      case _ =>
+        val line = lines.find(line => line.startsWith("fixed") || line.startsWith("variable"))
+        if(line.isEmpty) sys.error("Input file may not be biformat.maf.wig format.")
+        nextunit = line.get.split(sep)(0) match {
+          case "fixedStep" => FixedStep(line.get)
+          case "variableStep" => VariableStep(line.get)
+        }
+        gen()
     }
+  }
 }

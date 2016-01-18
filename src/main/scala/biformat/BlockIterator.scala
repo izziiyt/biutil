@@ -1,7 +1,5 @@
 package biformat
 
-import java.util.NoSuchElementException
-
 /**
   * Bioinformatics format-managing interface.
   */
@@ -19,6 +17,7 @@ trait BlockIterator[T <: Block] extends Iterator[T] {
 }
 
 object BlockIterator {
+
   trait MergedIterator[T <: Block] extends BlockIterator[T]{
 
     def maxSize: Int
@@ -27,18 +26,19 @@ object BlockIterator {
 
     protected var buf: Option[T] = None
 
-    protected var nextOne: Option[T] = gen()
+    protected var nextOne: Option[T] = None
 
     def next(): T = {
-      if (!hasNext) throw new NoSuchElementException
-      else {
-        val tmp = nextOne.get
-        nextOne = gen()
-        tmp
-      }
+      if(!hasNext) throw new NoSuchElementException
+      val tmp = nextOne.get
+      nextOne = None
+      tmp
     }
 
-    def hasNext: Boolean = nextOne.isDefined
+    def hasNext: Boolean = nextOne.isDefined || {
+      nextOne = gen()
+      nextOne.isDefined
+    }
 
     protected def gen(): Option[T] = {
       for(unit <- its) {

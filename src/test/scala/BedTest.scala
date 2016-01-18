@@ -1,4 +1,4 @@
-import biformat.BedIterator
+import biformat._
 import org.scalatest.FunSuite
 
 /**
@@ -9,5 +9,10 @@ class BedTest extends FunSuite{
     val bedit = BedIterator.fromSource(biformat.bigSource("src/test/resources/biformat/sample.bed"))
     val xs = List ((70,80), (81, 88), (91, 95), (97, 100), (101, 170), (200, 300))
     bedit.toList zip xs foreach{case (a,b) => assert(a.start == b._1 && a.end == b._2)}
+  }
+  test("merger"){
+    val fi = bigSource("src/test/resources/biformat/sample.bed")
+    val its = BedIterator.fromSource(fi).merged(10)
+    its.foreach{_ => Unit}
   }
 }
