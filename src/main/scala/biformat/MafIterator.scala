@@ -12,10 +12,11 @@ import scala.io.Source
 
 abstract class MafIterator extends BlockIterator[MafUnit]{
   def append(x: MafUnit, y: MafUnit): MafUnit = x + y
-  def merged(_maxSize: Int) = new {
+  def merged(_maxSize: Int, _its: BlockIterator[MafUnit]) = new MafIterator with MergedIterator[MafUnit] {
     val maxSize = _maxSize
-    val its = this
-  } with MafIterator with MergedIterator[MafUnit]
+    val its = _its
+  }
+  def merged(_maxSize: Int) = merged(_maxSize, this)
 }
 
 object MafIterator {

@@ -2,15 +2,15 @@ package biformat
 
 import biformat.BedIterator.BedLine
 import biformat.BlockIterator.{GenBlockIterator, MergedIterator}
-
 import scala.io.Source
 
 abstract class BedIterator extends BlockIterator[BedLine]{
   def append(x: BedLine, y: BedLine) = throw new UnsupportedOperationException
-  def merged(_maxSize: Int) = new {
+  protected def merged(_maxSize: Int, _its: BlockIterator[BedLine]) = new BedIterator with MergedIterator[BedLine]{
     val maxSize = _maxSize
-    val its = this
-  } with BedIterator with MergedIterator[BedLine]
+    val its = _its
+  }
+  def merged(_maxSize: Int) = merged(_maxSize, this)
 }
 
 object BedIterator {

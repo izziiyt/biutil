@@ -11,16 +11,19 @@ abstract class WigIterator extends BlockIterator[WigUnit]{
 
   /**
     * non safe opperation
+    *
     * @param x one WigUnit
     * @param y the other WigUnit
     * @return assemble of x and y
     */
   def append(x: WigUnit, y: WigUnit): WigUnit = WigUnit.append(x,y)
 
-  def merged(_maxSize: Int) = new {
+  def merged(_maxSize: Int, _its: BlockIterator[WigUnit] = this) = new WigIterator with MergedIterator[WigUnit]{
     val maxSize = _maxSize
-    val its = this
-  } with WigIterator with MergedIterator[WigUnit]
+    val its = _its
+  }
+
+  def merged(_maxSize: Int) = merged(_maxSize,this)
 
   def filterWithBed(bit: Iterator[BedLine])(implicit wit: WigIterator = this): WigIterator =
     new WigIterator with GenBlockIterator[WigUnit]{
@@ -31,17 +34,6 @@ abstract class WigIterator extends BlockIterator[WigUnit]{
 
     protected var nextOne: Option[WigUnit] = None
 
-    /*def next(): WigUnit = {
-      if (!hasNext) throw new NoSuchElementException
-      else {
-        val tmp = nextOne.get
-        nextOne = gen()
-        tmp
-      }
-    }
-
-    def hasNext: Boolean = nextOne.isDefined
-*/
     protected def gen(): Option[WigUnit] = {
       @tailrec
       def f(wigop: Option[WigUnit], bedop: Option[BedLine]): (Option[WigUnit], Option[WigUnit], Option[BedLine]) = {
@@ -178,6 +170,7 @@ object WigIterator {
 
   /**
     * Variable-Step type WigUnit
+    *
     * @param chrom chromosome name
     * @param start 0-origin start index
     * @param step step parameter

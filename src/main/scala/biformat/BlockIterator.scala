@@ -11,6 +11,7 @@ trait BlockIterator[T <: Block] extends Iterator[T] {
     * concatenates adjacent Blocks if they are appnedableWith
     * [[Block.appendableWith]]
     * */
+  protected def merged(maxSize: Int, _its: BlockIterator[T]): MergedIterator[T]
   def merged(maxSize: Int): MergedIterator[T]
 
   protected def append(x: T, y: T): T
