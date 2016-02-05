@@ -146,7 +146,7 @@ object WigIterator {
       if (end <= bed.start || start >= bed.end || chrom != bed.chr) None
       else {
         try {
-          Some(VariableStep(chrom, span, lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end))=)
+          Some(VariableStep(chrom, span, lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end)))
         }
         catch{
           case e:java.util.NoSuchElementException =>
