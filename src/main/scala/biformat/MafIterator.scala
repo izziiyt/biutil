@@ -139,8 +139,6 @@ object MafIterator {
 
     val lines = s.getLines()
 
-    protected var nextOne: Option[MafUnit] = None
-
     def gen(): Option[MafUnit] = {
       val buf = new ListBuffer[MafLine]()
       for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {

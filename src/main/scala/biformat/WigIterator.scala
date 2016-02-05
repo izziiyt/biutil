@@ -2,7 +2,9 @@ package biformat
 
 import biformat.BedIterator.BedLine
 import biformat.BlockIterator.{MergedIterator, GenBlockIterator}
-import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
+import biformat.WigIterator.{VariableStep, FixedStep, WigUnit}
+import breeze.linalg.{diff, max}
+import breeze.numerics.abs
 import scala.annotation.tailrec
 import scala.collection.mutable.{ListBuffer, ArrayBuffer}
 import scala.io.Source
@@ -25,14 +27,13 @@ abstract class WigIterator extends BlockIterator[WigUnit]{
 
   def merged(_maxSize: Int) = merged(_maxSize,this)
 
-  def filterWithBed(bit: Iterator[BedLine])(implicit wit: WigIterator = this): WigIterator =
+  def filterWithBed(bit: Iterator[BedLine]): WigIterator = filterWithBed(bit, this)
+  protected def filterWithBed(bit: Iterator[BedLine], wit: WigIterator): WigIterator =
     new WigIterator with GenBlockIterator[WigUnit]{
 
     protected var bedBuf: Option[BedLine] = if (bit.hasNext) Some(bit.next()) else None
 
     protected var wigBuf: Option[WigUnit] = if (wit.hasNext) Some(wit.next()) else None
-
-    protected var nextOne: Option[WigUnit] = None
 
     protected def gen(): Option[WigUnit] = {
       @tailrec
@@ -145,18 +146,16 @@ object WigIterator {
       if (end <= bed.start || start >= bed.end || chrom != bed.chr) None
       else {
         try {
-          Some(VariableStep(chrom, span,
-            lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end))
-          )
+          Some(VariableStep(chrom, span, lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end))=)
         }
         catch{
           case e:java.util.NoSuchElementException =>
-            println(end + " " + bed.start + " " + start + " " + bed.end + chrom + " " + bed.chr)
             e.printStackTrace()
             None
         }
       }
     }
+
   }
 
   object VariableStep {
@@ -177,7 +176,7 @@ object WigIterator {
     * @param span span parameter
     * @param lines all Doubles
     */
-  case class FixedStep(chrom: String, start: Long, step: Int, span: Int, lines: Array[Double]) extends WigUnit{
+  case class FixedStep(chrom: String, start: Long, step: Int, span: Int, lines: Array[Double]) extends WigUnit {
     type T = Double
     def end = start + length
     def marginalize(wing: Int): FixedStep = {
@@ -193,12 +192,11 @@ object WigIterator {
       FixedStep(chrom,start + wing, 1, 1, tmp)
     }
 
-    def appendableWith(that: Block): Boolean = {
+    def appendableWith(that: Block): Boolean =
       that match {
-        case FixedStep(x,y,z,w,_) => this.end == y && this.chrom == x
+        case FixedStep(thatch,thats,_,_,_) => end == thats && chrom == thatch
         case _ => false
       }
-    }
 
     def +(that: WigUnit): WigUnit =
       that match {
@@ -206,9 +204,11 @@ object WigIterator {
         case _ => throw new UnsupportedOperationException
       }
 
-    def interSection(bed: BedLine): Option[FixedStep] = {
+    def interSection(bed: BedLine): Option[FixedStep] =
       throw new UnsupportedOperationException
-    }
+
+    def toVariableStep: VariableStep =
+      new VariableStep(chrom, span, lines.zipWithIndex.map{case (x, i) => (i + start,x)})
   }
 
   object FixedStep {
@@ -229,36 +229,51 @@ object WigIterator {
 
     protected var nextunit: WigUnit = null
 
-    protected var nextOne: Option[WigUnit] = None
-
-    protected def gen(): Option[WigUnit] = nextunit match {
-      case VariableStep(chrom, span, _) =>
-        val buf = new ArrayBuffer[(Long, Double)]()
-        for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
-          p(0) match {
-            case "fixedStep" =>
-              nextunit = FixedStep(line)
-              if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
-            case "variableStep" =>
-              nextunit = VariableStep(line)
-              if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
-            case _ =>
-              buf += Tuple2(p(0).toLong, p(1).toDouble)
-              if(buf.length >= maxsize) return Some(VariableStep(chrom, span, buf.toArray))
+    protected def gen(): Option[WigUnit] = {
+      nextunit match {
+        case VariableStep(chrom, span, _) =>
+          val buf = new ArrayBuffer[(Long, Double)]()
+          for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
+            p(0) match {
+              case "fixedStep" =>
+                nextunit = FixedStep(line)
+                if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
+              case "variableStep" =>
+                nextunit = VariableStep(line)
+                if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
+              case _ =>
+                buf += Tuple2(p(0).toLong, p(1).toDouble)
+                if(buf.length >= maxsize) return Some(VariableStep(chrom, span, buf.toArray))
+            }
           }
-        }
-        if (buf.nonEmpty) Some(VariableStep(chrom, span, buf.toArray))
-        else None
-      case FixedStep(chrom, start, step, span, _) =>
-        throw new UnsupportedOperationException
-      case _ =>
-        val line = lines.find(line => line.startsWith("fixed") || line.startsWith("variable"))
-        if(line.isEmpty) sys.error("Input file may not be biformat.maf.wig format.")
-        nextunit = line.get.split(sep)(0) match {
-          case "fixedStep" => FixedStep(line.get)
-          case "variableStep" => VariableStep(line.get)
-        }
-        gen()
+          if (buf.nonEmpty) Some(VariableStep(chrom, span, buf.toArray))
+          else None
+        case FixedStep(chrom, start, step, span, _) =>
+          val buf = new ArrayBuffer[Double]()
+          for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
+            p(0) match {
+              case "fixedStep" =>
+                nextunit = FixedStep(line)
+                if(buf.nonEmpty) return Some(FixedStep(chrom, start, step, span, buf.toArray))
+              case "variableStep" =>
+                nextunit = VariableStep(line)
+                if(buf.nonEmpty) return Some(FixedStep(chrom, start, step, span, buf.toArray))
+              case _ =>
+                buf += p(0).toDouble
+                if(buf.length >= maxsize) return Some(FixedStep(chrom, start, step, span, buf.toArray))
+            }
+          }
+          if (buf.nonEmpty) Some(FixedStep(chrom, start, step, span, buf.toArray))
+          else None
+        case _ =>
+          val line = lines.find(line => line.startsWith("fixed") || line.startsWith("variable"))
+          if(line.isEmpty) sys.error("Input file may not be biformat.maf.wig format.")
+          nextunit = line.get.split(sep)(0) match {
+            case "fixedStep" => FixedStep(line.get)
+            case "variableStep" => VariableStep(line.get)
+          }
+          gen()
+      }
     }
   }
 }

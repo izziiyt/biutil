@@ -20,7 +20,7 @@ trait BlockIterator[T <: Block] extends Iterator[T] {
 object BlockIterator {
 
   trait GenBlockIterator[T <: Block] extends BlockIterator[T]{
-    protected var nextOne: Option[T]
+    protected var nextOne: Option[T] = None
 
     def next(): T = {
       if(!hasNext) throw new NoSuchElementException
@@ -44,8 +44,6 @@ object BlockIterator {
     def its: BlockIterator[T]
 
     protected var buf: Option[T] = None
-
-    protected var nextOne: Option[T] = None
 
     protected def gen(): Option[T] = {
       for(unit <- its) {

@@ -27,8 +27,6 @@ object BedIterator {
 
     val lines = s.getLines()
 
-    protected var nextOne: Option[BedLine] = None
-
     protected def gen(): Option[BedLine] = {
       for(line <- lines; if !line.startsWith("#") && line.nonEmpty){
         return Some(BedLine(line, DefaultSep))
