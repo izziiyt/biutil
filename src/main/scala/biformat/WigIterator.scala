@@ -92,6 +92,7 @@ object WigIterator {
     def marginalize(wing: Int): WigUnit
     def +(that: WigUnit): WigUnit
     def interSection(bed: BedLine): Option[WigUnit]
+    def toVariableStep: VariableStep
   }
 
   object WigUnit {
@@ -106,6 +107,8 @@ object WigIterator {
 
   case class VariableStep(chrom: String, span: Int, lines: Array[(Long, Double)]) extends WigUnit {
     type T = (Long, Double)
+
+    def toVariableStep = this
 
     def start = lines.head._1
 
@@ -176,39 +179,44 @@ object WigIterator {
     * @param span span parameter
     * @param lines all Doubles
     */
+
   case class FixedStep(chrom: String, start: Long, step: Int, span: Int, lines: Array[Double]) extends WigUnit {
     type T = Double
+
     def end = start + length
+
     def marginalize(wing: Int): FixedStep = {
       require(step == 1 && span == 1)
       @tailrec
       def f(headi: Int, lasti: Int, sum: Double,
             result: ArrayBuffer[Double] = new ArrayBuffer[Double]()): ArrayBuffer[Double] = {
-        if(lasti >= lines.length) result :+ sum
+        if (lasti >= lines.length) result :+ sum
         else f(headi + 1, lasti + 1, sum - lines(headi) + lines(lasti), result :+ sum)
       }
       val init = (0 to 2 * wing).map(lines(_)).sum
       val tmp = f(0, 2 * wing + 1, init).toArray
-      FixedStep(chrom,start + wing, 1, 1, tmp)
+      FixedStep(chrom, start + wing, 1, 1, tmp)
     }
 
     def appendableWith(that: Block): Boolean =
       that match {
-        case FixedStep(thatch,thats,_,_,_) => end == thats && chrom == thatch
+        case FixedStep(thatch, thats, _, _, _) => end == thats && chrom == thatch
         case _ => false
       }
 
     def +(that: WigUnit): WigUnit =
       that match {
-        case FixedStep(_,_,_,_,ys) => FixedStep(chrom, start, step, span, lines ++ ys)
+        case FixedStep(_, _, _, _, ys) => FixedStep(chrom, start, step, span, lines ++ ys)
         case _ => throw new UnsupportedOperationException
       }
 
     def interSection(bed: BedLine): Option[FixedStep] =
       throw new UnsupportedOperationException
 
-    def toVariableStep: VariableStep =
-      new VariableStep(chrom, span, lines.zipWithIndex.map{case (x, i) => (i + start,x)})
+    def toVariableStep: VariableStep = {
+      require(step == 1 && span == 1)
+      new VariableStep(chrom, span, lines.zipWithIndex.map { case (x, i) => (i + start, x) })
+    }
   }
 
   object FixedStep {
