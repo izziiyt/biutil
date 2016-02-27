@@ -92,6 +92,7 @@ object WigIterator {
     def marginalize(wing: Int): WigUnit
     def +(that: WigUnit): WigUnit
     def interSection(bed: BedLine): Option[WigUnit]
+    def toVariableStep: VariableStep
   }
 
   object WigUnit {
@@ -108,6 +109,8 @@ object WigIterator {
     type T = (Long, Double)
 
     def start = lines.head._1
+
+    def toVariableStep = this
 
     def end = lines.last._1 + span
 

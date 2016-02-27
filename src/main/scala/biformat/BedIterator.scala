@@ -54,13 +54,14 @@ object BedIterator {
 
     def length = (end - start).toInt
     def appendableWith(that: Block): Boolean = false
-    override def toString = chr + '\t' + start + '\t' + end + '\t' + name + '\t' + score.toInt + '\t' + strand
+    override def toString = chr + '\t' + start + '\t' + end + '\t' + name + '\t' + score + '\t' + strand + '\t' +
+      thickStart + '\t' + thickEnd + '\t' + itemRgb._1 + ',' + itemRgb._2 + ',' + itemRgb._3 + ',' + '\t' +
+      blockCount + '\t' + blockSize.mkString(",") + '\t' + blockStarts.mkString(",")
     def hasOverlap(that:BedLine): Boolean = this.start < that.end && this.end > that.start
   }
 
 
   object BedLine {
-    //implicit def toOption[T](x:T): Option[T] = Some(x)
 
     def apply(line: String, sep: String): BedLine = {
       val ps = line.split(sep)
