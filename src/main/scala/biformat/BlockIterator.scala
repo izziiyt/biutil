@@ -74,9 +74,10 @@ object BlockIterator {
   */
 trait Block extends {
   /** 0 origin index*/
-  def start: Long
+  def start: Int
   /** 0 origin index*/
-  def end: Long
+  def end: Int
+  def chr: String
   def length: Int
   def appendableWith(that: Block): Boolean
 }

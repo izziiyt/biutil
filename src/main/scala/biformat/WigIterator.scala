@@ -3,8 +3,6 @@ package biformat
 import biformat.BedIterator.BedLine
 import biformat.BlockIterator.{MergedIterator, GenBlockIterator}
 import biformat.WigIterator.{VariableStep, FixedStep, WigUnit}
-import breeze.linalg.{diff, max}
-import breeze.numerics.abs
 import scala.annotation.tailrec
 import scala.collection.mutable.{ListBuffer, ArrayBuffer}
 import scala.io.Source
@@ -42,7 +40,7 @@ abstract class WigIterator extends BlockIterator[WigUnit]{
         def nextw = if (wit.hasNext) Some(wit.next()) else None
         (wigop, bedop) match {
           case (Some(wig), Some(bed)) =>
-            if (wig.chrom != bed.chr) f(wigop, nextb)
+            if (wig.chr != bed.chr) f(wigop, nextb)
             else wig.interSection(bed) match {
               case None =>
                 if (wig.end <= bed.start) f(nextw, bedop) else f(wigop, nextb)
@@ -85,7 +83,6 @@ object WigIterator {
     */
   sealed trait WigUnit extends Block {
     type T
-    def chrom: String
     def span: Int
     def lines: Array[T]
     def length = lines.length * span
@@ -100,26 +97,26 @@ object WigIterator {
   }
 
   /**
-    * @param chrom chromosome name
+    * @param chr chromosome name
     * @param span span paramter
-    * @param lines all (Long, Double) pairs
+    * @param lines all (Int, Double) pairs
     */
 
-  case class VariableStep(chrom: String, span: Int, lines: Array[(Long, Double)]) extends WigUnit {
-    type T = (Long, Double)
-
-    def toVariableStep = this
+  case class VariableStep(chr: String, span: Int, lines: Array[(Int, Double)]) extends WigUnit {
+    type T = (Int, Double)
 
     def start = lines.head._1
+
+    def toVariableStep = this
 
     def end = lines.last._1 + span
 
     def marginalize(wing: Int) = {
       require(span == 1)
       @tailrec
-      def f(xs: List[(Long, Double)],
-            ys: ListBuffer[(Long, Double)],
-            zs: List[(Long, Double)]): List[(Long, Double)] = {
+      def f(xs: List[(Int, Double)],
+            ys: ListBuffer[(Int, Double)],
+            zs: List[(Int, Double)]): List[(Int, Double)] = {
         def lwlim = ys.head._1
         def uplim = lwlim + (2 * wing)
         if (ys.last._1 == uplim) f(xs, ys.tail, (lwlim + wing, ys.foldLeft(0.0) { (n, x) => n + x._2 }) :: zs)
@@ -128,28 +125,28 @@ object WigIterator {
         else f(xs.tail, ListBuffer(xs.head), zs)
       }
       val tmp = f(lines.tail.toList, ListBuffer(lines.head), Nil)
-      VariableStep(chrom, span, tmp.toArray)
+      VariableStep(chr, span, tmp.toArray)
     }
 
     override def appendableWith(that: Block): Boolean = {
       that match {
-        case VariableStep(ch, sp, _) => this.chrom == ch && this.span == sp
+        case VariableStep(_chr, _span, _) => chr == _chr && span == _span
         case _ => false
       }
     }
 
     def +(that: WigUnit): WigUnit = {
       that match {
-        case VariableStep(_, _, xs) => VariableStep(chrom, span, lines ++ xs)
+        case VariableStep(_, _, xs) => VariableStep(chr, span, lines ++ xs)
         case _ => throw new UnsupportedOperationException
       }
     }
 
     def interSection(bed: BedLine): Option[VariableStep] = {
-      if (end <= bed.start || start >= bed.end || chrom != bed.chr) None
+      if (end <= bed.start || start >= bed.end || chr != bed.chr) None
       else {
         try {
-          Some(VariableStep(chrom, span, lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end)))
+          Some(VariableStep(chr, span, lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end)))
         }
         catch{
           case e:java.util.NoSuchElementException =>
@@ -164,23 +161,23 @@ object WigIterator {
   object VariableStep {
     def apply(line: String, sep: String = DefaultSep): VariableStep = {
       val p = line.split(sep)
-      val chrom = p(1).split("=").last
+      val chr = p(1).split("=").last
       val span = if(p.length == 3) p(2).split("=").last.toInt else 1
-      VariableStep(chrom, span, null)
+      VariableStep(chr, span, null)
     }
   }
 
   /**
     * Variable-Step type WigUnit
     *
-    * @param chrom chromosome name
+    * @param chr chromosome name
     * @param start 0-origin start index
     * @param step step parameter
     * @param span span parameter
     * @param lines all Doubles
     */
 
-  case class FixedStep(chrom: String, start: Long, step: Int, span: Int, lines: Array[Double]) extends WigUnit {
+  case class FixedStep(chr: String, start: Int, step: Int, span: Int, lines: Array[Double]) extends WigUnit {
     type T = Double
 
     def end = start + length
@@ -195,38 +192,38 @@ object WigIterator {
       }
       val init = (0 to 2 * wing).map(lines(_)).sum
       val tmp = f(0, 2 * wing + 1, init).toArray
-      FixedStep(chrom, start + wing, 1, 1, tmp)
+
+      FixedStep(chr,start + wing, 1, 1, tmp)
     }
 
     def appendableWith(that: Block): Boolean =
       that match {
-        case FixedStep(thatch, thats, _, _, _) => end == thats && chrom == thatch
+        case FixedStep(thatch,thats,_,_,_) => end == thats && chr == thatch
         case _ => false
       }
 
     def +(that: WigUnit): WigUnit =
       that match {
-        case FixedStep(_, _, _, _, ys) => FixedStep(chrom, start, step, span, lines ++ ys)
+        case FixedStep(_,_,_,_,ys) => FixedStep(chr, start, step, span, lines ++ ys)
         case _ => throw new UnsupportedOperationException
       }
 
     def interSection(bed: BedLine): Option[FixedStep] =
       throw new UnsupportedOperationException
 
-    def toVariableStep: VariableStep = {
-      require(step == 1 && span == 1)
-      new VariableStep(chrom, span, lines.zipWithIndex.map { case (x, i) => (i + start, x) })
-    }
+
+    def toVariableStep: VariableStep =
+      new VariableStep(chr, span, lines.zipWithIndex.map{case (x, i) => (i + start,x)})
   }
 
   object FixedStep {
     def apply(line: String, sep: String = DefaultSep): FixedStep = {
       val p = line.split(sep)
-      val chrom = p(1).split("=").last
-      val start = p(2).split("=").last.toLong
+      val chr = p(1).split("=").last
+      val start = p(2).split("=").last.toInt
       val step = p(3).split("=").last.toInt
       val span = if(p.length == 3) p(2).split("=").last.toInt else 1
-      FixedStep(chrom, start, step, span, null)
+      FixedStep(chr, start, step, span, null)
     }
   }
 
@@ -239,39 +236,39 @@ object WigIterator {
 
     protected def gen(): Option[WigUnit] = {
       nextunit match {
-        case VariableStep(chrom, span, _) =>
-          val buf = new ArrayBuffer[(Long, Double)]()
+        case VariableStep(chr, span, _) =>
+          val buf = new ArrayBuffer[(Int, Double)]()
           for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
             p(0) match {
               case "fixedStep" =>
                 nextunit = FixedStep(line)
-                if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
+                if(buf.nonEmpty) return Some(VariableStep(chr, span, buf.toArray))
               case "variableStep" =>
                 nextunit = VariableStep(line)
-                if(buf.nonEmpty) return Some(VariableStep(chrom, span, buf.toArray))
+                if(buf.nonEmpty) return Some(VariableStep(chr, span, buf.toArray))
               case _ =>
-                buf += Tuple2(p(0).toLong, p(1).toDouble)
-                if(buf.length >= maxsize) return Some(VariableStep(chrom, span, buf.toArray))
+                buf += Tuple2(p(0).toInt, p(1).toDouble)
+                if(buf.length >= maxsize) return Some(VariableStep(chr, span, buf.toArray))
             }
           }
-          if (buf.nonEmpty) Some(VariableStep(chrom, span, buf.toArray))
+          if (buf.nonEmpty) Some(VariableStep(chr, span, buf.toArray))
           else None
-        case FixedStep(chrom, start, step, span, _) =>
+        case FixedStep(chr, start, step, span, _) =>
           val buf = new ArrayBuffer[Double]()
           for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
             p(0) match {
               case "fixedStep" =>
                 nextunit = FixedStep(line)
-                if(buf.nonEmpty) return Some(FixedStep(chrom, start, step, span, buf.toArray))
+                if(buf.nonEmpty) return Some(FixedStep(chr, start, step, span, buf.toArray))
               case "variableStep" =>
                 nextunit = VariableStep(line)
-                if(buf.nonEmpty) return Some(FixedStep(chrom, start, step, span, buf.toArray))
+                if(buf.nonEmpty) return Some(FixedStep(chr, start, step, span, buf.toArray))
               case _ =>
                 buf += p(0).toDouble
-                if(buf.length >= maxsize) return Some(FixedStep(chrom, start, step, span, buf.toArray))
+                if(buf.length >= maxsize) return Some(FixedStep(chr, start, step, span, buf.toArray))
             }
           }
-          if (buf.nonEmpty) Some(FixedStep(chrom, start, step, span, buf.toArray))
+          if (buf.nonEmpty) Some(FixedStep(chr, start, step, span, buf.toArray))
           else None
         case _ =>
           val line = lines.find(line => line.startsWith("fixed") || line.startsWith("variable"))

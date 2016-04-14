@@ -28,7 +28,7 @@ object MafIterator {
 
   case class MafUnit(lines: Map[String, MafLine], target: String) extends Block {
     val length = lines.values.head.length
-
+    def chr = lines(target).subname
     require(lines.values.forall(_.length == length))
 
     def start = lines(target).start
@@ -112,7 +112,7 @@ object MafIterator {
     * @param strand '+' or '-'
     * @param seq Array[Base]
     */
-  case class MafLine(name: String, subname: String, start: Long, num: Long, strand: String, seq: Array[Base]) {
+  case class MafLine(name: String, subname: String, start: Int, num: Int, strand: String, seq: Array[Base]) {
     def length = seq.length
     def end = start + num
     def +(that: MafLine) = MafLine(name, subname, start, num + that.num, strand, seq ++ that.seq)
@@ -126,7 +126,7 @@ object MafIterator {
       */
     def fromString(xs: Seq[String]) = {
       val names = xs(1).split('.')
-      MafLine(names(0), if (names.length == 2) names(1) else "", xs(2).toLong, xs(3).toLong, xs(4), xs(6).toCharArray.map(Base.fromChar))
+      MafLine(names(0), if (names.length == 2) names(1) else "", xs(2).toInt, xs(3).toInt, xs(4), xs(6).toCharArray.map(Base.fromChar))
     }
   }
 
