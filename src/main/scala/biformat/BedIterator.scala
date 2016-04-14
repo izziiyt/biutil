@@ -47,12 +47,12 @@ object BedIterator {
     *
     */
 
-  case class BedLine(chr: String, start: Long, end: Long, name: String = "", score: Int = 0, strand: Char = '+',
-                     thickStart: Long = 0, thickEnd: Long = 0, itemRgb: (Char, Char, Char) =
+  case class BedLine(chr: String, start: Int, end: Int, name: String = "", score: Int = 0, strand: Char = '+',
+                     thickStart: Int = 0, thickEnd: Int = 0, itemRgb: (Char, Char, Char) =
                      (Char.MinValue,Char.MaxValue,Char.MinValue) , blockCount: Int = 0,
                      blockSize: Array[Int] = Array.empty, blockStarts: Array[Int] = Array.empty) extends Block {
 
-    def length = (end - start).toInt
+    def length = end - start
     def appendableWith(that: Block): Boolean = false
     override def toString = chr + '\t' + start + '\t' + end + '\t' + name + '\t' + score + '\t' + strand + '\t' +
       thickStart + '\t' + thickEnd + '\t' + itemRgb._1 + ',' + itemRgb._2 + ',' + itemRgb._3 + ',' + '\t' +
@@ -67,12 +67,12 @@ object BedIterator {
       val ps = line.split(sep)
       if(ps.length == 12){
         val rgbbase = ps(8).split(',')
-        BedLine(ps(0), ps(1).toLong, ps(2).toLong, ps(3), ps(4).toInt, ps(5).head, ps(6).toLong, ps(7).toLong,
+        BedLine(ps(0), ps(1).toInt, ps(2).toInt, ps(3), ps(4).toInt, ps(5).head, ps(6).toInt, ps(7).toInt,
           (rgbbase(0).head, rgbbase(1).head,rgbbase(2).head), ps(9).toInt, ps(10).split(',').map(_.toInt),
           ps(11).split(',').map(_.toInt))
       }
       else
-        BedLine(ps(0), ps(1).toLong, ps(2).toLong)
+        BedLine(ps(0), ps(1).toInt, ps(2).toInt)
     }
   }
 }
