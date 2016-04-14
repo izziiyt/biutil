@@ -1,16 +1,17 @@
 package biformat
 
 /**
-  * Bioinformatics format-managing interface.
+  * Bioinformatics format-managing interface extends Iterator.
   */
-
 trait BlockIterator[T <: Block] extends Iterator[T] {
   import BlockIterator._
+
   /**
-    * Create Iterator[Block]
-    * concatenates adjacent Blocks if they are appnedableWith
-    * [[Block.appendableWith]]
-    * */
+    * appends adjacent [[Block]] as long as [[Block.length]] is uncer maxSize
+    * @param maxSize
+    * @param _its
+    * @return shortened BlockIterator
+    */
   protected def merged(maxSize: Int, _its: BlockIterator[T]): MergedIterator[T]
   def merged(maxSize: Int): MergedIterator[T]
 
@@ -70,13 +71,14 @@ object BlockIterator {
 }
 
 /**
-  * Managed by BlockwiseIterator.[[biformat.BlockIterator]]
+  * Module class to be managed by [[biformat.BlockIterator]].
   */
 trait Block extends {
   /** 0 origin index*/
   def start: Int
   /** 0 origin index*/
   def end: Int
+  /** chromosome name*/
   def chr: String
   def length: Int
   def appendableWith(that: Block): Boolean

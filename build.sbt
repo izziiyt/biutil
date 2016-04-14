@@ -6,14 +6,14 @@ crossScalaVersions  := Common.crossScalaVersions
 resolvers += Resolver.sonatypeRepo("releases")
 
 libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "2.1.3" % "test",
-  "org.scalanlp" %% "breeze" % "0.11.2"
+  "org.scalatest" %% "scalatest" % "2.2.6" % "test",
+  "org.scalanlp" %% "breeze" % "0.12"
 )
 
 libraryDependencies <<= (scalaVersion, libraryDependencies) { (sv, deps) =>
   sv match {
     case x if x.startsWith("2.11") =>
-      deps :+ "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.1"
+      deps :+ "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
     case _       =>
       deps
   }

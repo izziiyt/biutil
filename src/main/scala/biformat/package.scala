@@ -1,15 +1,15 @@
 import java.io.{File, FileInputStream}
 import java.util.zip.GZIPInputStream
 import scala.io.{BufferedSource, Source}
-
+import biformat._
 /**
   * Provides classes for dealing with bioinfomatics formatted data.
   *
   * ==Overview==
-  * You don't need to concern about heap size.
-  * [[biformat.WigIterator]] and [[biformat.MafIterator]] can manage
+  * The purpose is to make me not to concern about VM's heap size.
+  * For example, [[WigIterator]] and [[MafIterator]] can manage
   * large data as once-traversable iterator.
-  * Also you can use these iterators by functional methods.
+  * Also you can use these iterators with functional programing style.
   */
 package object biformat {
   def bigSource(f: File): Source = new BufferedSource(
