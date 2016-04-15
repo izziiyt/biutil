@@ -1,10 +1,12 @@
 package biformat
 
 import biformat.BedIterator.BedLine
-import biformat.BlockIterator.{MergedIterator, GenBlockIterator}
-import biformat.WigIterator.{VariableStep, FixedStep, WigUnit}
+import biformat.BlockIterator.{GenBlockIterator, MergedIterator}
+import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
+
 import scala.annotation.tailrec
-import scala.collection.mutable.{ListBuffer, ArrayBuffer}
+import scala.collection.mutable
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.io.Source
 
 abstract class WigIterator extends BlockIterator[WigUnit]{
@@ -106,6 +108,10 @@ object WigIterator {
     type T = (Int, Double)
 
     def start = lines.head._1
+
+    override def toString: String =
+      s"variableStep\tchrom=$chr" + {if(span != 1) s"span=$span" else ""} +
+        lines.map{case (i,x) => s"$i\t$x"}.mkString("\n","\n","\n")
 
     def toVariableStep = this
 
