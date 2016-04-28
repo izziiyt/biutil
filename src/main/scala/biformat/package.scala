@@ -6,7 +6,7 @@ import biformat._
   * Provides classes for dealing with bioinfomatics formatted data.
   *
   * ==Overview==
-  * The purpose is to make me not to concern about VM's heap size.
+  * The purpose is to make programmers not to concern about VM's heap size.
   * For example, [[WigIterator]] and [[MafIterator]] can manage
   * large data as once-traversable iterator.
   * Also you can use these iterators with functional programing style.
