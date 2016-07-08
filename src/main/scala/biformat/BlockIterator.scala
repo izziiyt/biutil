@@ -73,7 +73,7 @@ object BlockIterator {
 /**
   * Module class to be managed by [[biformat.BlockIterator]].
   */
-trait Block extends {
+trait Block extends Ordered[Block]{
   /** 0 origin index*/
   def start: Int
   /** 0 origin index*/
@@ -82,4 +82,18 @@ trait Block extends {
   def chr: String
   def length: Int
   def appendableWith(that: Block): Boolean
+  override def compare(that: Block): Int = {
+    def chr2int(str: String): Int = {
+      val suffix = str.diff("chr")
+      try suffix.toInt catch {case _:Exception => suffix.head.toInt + 99}
+    }
+    val tmp1 = chr2int(this.chr) - chr2int(that.chr)
+    lazy val tmp2 = this.start - that.start
+    lazy val tmp3 = this.end - that.end
+    if(tmp1 == 0) {
+      if(tmp2 == 0) tmp3
+      else tmp2
+    }
+    else tmp1
+  }
 }

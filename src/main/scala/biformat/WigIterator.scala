@@ -5,7 +5,6 @@ import biformat.BlockIterator.{GenBlockIterator, MergedIterator}
 import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
 
 import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.io.Source
 
