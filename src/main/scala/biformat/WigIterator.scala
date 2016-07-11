@@ -37,16 +37,16 @@ abstract class WigIterator extends BlockIterator[WigUnit]{
     protected def gen(): Option[WigUnit] = {
       @tailrec
       def f(wigop: Option[WigUnit], bedop: Option[BedLine]): (Option[WigUnit], Option[WigUnit], Option[BedLine]) = {
-        def nextb = if (bit.hasNext) Some(bit.next()) else None
-        def nextw = if (wit.hasNext) Some(wit.next()) else None
+        def nextb() = if (bit.hasNext) Some(bit.next()) else None
+        def nextw() = if (wit.hasNext) Some(wit.next()) else None
         (wigop, bedop) match {
           case (Some(wig), Some(bed)) =>
-            if (wig.chr != bed.chr) f(wigop, nextb)
+            if (wig.chr != bed.chr) f(wigop, nextb())
             else wig.interSection(bed) match {
               case None =>
-                if (wig.end <= bed.start) f(nextw, bedop) else f(wigop, nextb)
+                if (wig.end <= bed.start) f(nextw(), bedop) else f(wigop, nextb())
               case tmp =>
-                if (bed.end < wig.end) (tmp, wigop, nextb) else (tmp, nextw, bedop)
+                if (bed.end < wig.end) (tmp, wigop, nextb()) else (tmp, nextw(), bedop)
             }
           case (None, _) | (_, None) => (None, None, None)
         }
