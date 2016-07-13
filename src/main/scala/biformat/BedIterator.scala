@@ -2,6 +2,9 @@ package biformat
 
 import biformat.BedIterator.BedLine
 import biformat.BlockIterator.{GenBlockIterator, MergedIterator}
+import breeze.linalg.{max, min}
+
+import scala.annotation.tailrec
 import scala.io.Source
 
 abstract class BedIterator extends BlockIterator[BedLine]{
@@ -11,6 +14,9 @@ abstract class BedIterator extends BlockIterator[BedLine]{
     val its = _its
   }
   def merged(_maxSize: Int) = merged(_maxSize, this)
+  def intersection(that: BedIterator): BedIterator = BedIterator.intersection(this, that)
+  def union(that: BedIterator): BedIterator = BedIterator.union(this, that)
+
 }
 
 object BedIterator {
@@ -19,6 +25,65 @@ object BedIterator {
     override def next(): BedLine = it.next()
     override def hasNext: Boolean = it.hasNext
   }
+
+  protected def intersection(bit1: BedIterator, bit2: BedIterator): BedIterator =
+    new BedIterator with GenBlockIterator[BedLine]{
+
+      protected var b1Buf: Option[BedLine] = if (bit1.hasNext) Some(bit1.next()) else None
+      protected var b2Buf: Option[BedLine] = if (bit2.hasNext) Some(bit2.next()) else None
+
+      protected def gen(): Option[BedLine] = {
+        @tailrec
+        def f(b1op: Option[BedLine], b2op: Option[BedLine]): (Option[BedLine], Option[BedLine], Option[BedLine]) = {
+          def nextb1() = if (bit1.hasNext) Some(bit1.next()) else None
+          def nextb2() = if (bit2.hasNext) Some(bit2.next()) else None
+          (b1op, b2op) match {
+            case (Some(bed1), Some(bed2)) =>
+              if (!bed1.hasOverlap(bed2)) {
+                if(bed1 > bed2) f(b1op, nextb2()) else f(nextb1(), b2op)
+              }
+              else{
+                val tmp = bed1.intersection(bed2)
+                if (bed1.end > bed2.end) (Some(tmp), b1op, nextb2()) else (Some(tmp), nextb1(), b2op)
+              }
+            case (None, _) | (_, None) =>
+              (None, None, None)
+          }
+        }
+        val (v1, v2, v3) = f(b1Buf, b2Buf)
+        b1Buf = v2
+        b2Buf = v3
+        v1
+      }
+    }
+
+  protected def union(bit1: BedIterator, bit2: BedIterator): BedIterator =
+    new BedIterator with GenBlockIterator[BedLine]{
+
+      protected var b1Buf: Option[BedLine] = if (bit1.hasNext) Some(bit1.next()) else None
+      protected var b2Buf: Option[BedLine] = if (bit2.hasNext) Some(bit2.next()) else None
+
+      protected def gen(): Option[BedLine] = {
+        def f(b1op: Option[BedLine], b2op: Option[BedLine]): (Option[BedLine], Option[BedLine], Option[BedLine]) = {
+          def nextb1() = if (bit1.hasNext) Some(bit1.next()) else None
+          def nextb2() = if (bit2.hasNext) Some(bit2.next()) else None
+          (b1op, b2op) match {
+            case (Some(bed1), Some(bed2)) =>
+              if (!bed1.hasOverlap(bed2)) {
+                if(bed1 > bed2) (Some(bed2), b1op, nextb2()) else (Some(bed1), nextb1(), b2op)
+              }
+              else{
+                (Some(bed1.union(bed2)), nextb1(), nextb2())
+              }
+            case _ => (None, None, None)
+          }
+        }
+        val (v1, v2, v3) = f(b1Buf, b2Buf)
+        b1Buf = v2
+        b2Buf = v3
+        v1
+      }
+    }
 
   val DefaultSep = """\p{javaWhitespace}+"""
 
@@ -62,7 +127,13 @@ object BedIterator {
       else tmp
     }
 
-    def hasOverlap(that:BedLine): Boolean = this.start < that.end && this.end > that.start
+    def hasOverlap(that:BedLine): Boolean = this.chr == that.chr && this.start < that.end && this.end > that.start
+    def intersection(that:BedLine): BedLine = {
+        BedLine(this.chr, max(this.start, that.start), min(this.end, that.end))
+    }
+    def union(that:BedLine): BedLine = {
+      BedLine(this.chr, min(this.start, that.start), max(this.end, that.end))
+    }
   }
 
 
