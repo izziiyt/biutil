@@ -39,7 +39,7 @@ object BedIterator {
           def nextb2() = if (bit2.hasNext) Some(bit2.next()) else None
           (b1op, b2op) match {
             case (Some(bed1), Some(bed2)) =>
-              if (!bed1.hasOverlap(bed2)) {
+              if (!bed1.hasIntersection(bed2)) {
                 if(bed1 > bed2) f(b1op, nextb2()) else f(nextb1(), b2op)
               }
               else{
@@ -69,7 +69,7 @@ object BedIterator {
           def nextb2() = if (bit2.hasNext) Some(bit2.next()) else None
           (b1op, b2op) match {
             case (Some(bed1), Some(bed2)) =>
-              if (!bed1.hasOverlap(bed2)) {
+              if (!bed1.hasIntersection(bed2)) {
                 if(bed1 > bed2) (Some(bed2), b1op, nextb2()) else (Some(bed1), nextb1(), b2op)
               }
               else{
@@ -127,7 +127,7 @@ object BedIterator {
       else tmp
     }
 
-    def hasOverlap(that:BedLine): Boolean = this.chr == that.chr && this.start < that.end && this.end > that.start
+    //def hasOverlap(that:BedLine): Boolean = this.chr == that.chr && this.start < that.end && this.end > that.start
     def intersection(that:BedLine): BedLine = {
         BedLine(this.chr, max(this.start, that.start), min(this.end, that.end))
     }

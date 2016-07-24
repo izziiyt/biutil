@@ -96,4 +96,7 @@ trait Block extends Ordered[Block]{
     }
     else tmp1
   }
+
+  def hasIntersection(that: Block): Boolean =
+    this.chr == that.chr && this.start < that.end && this.end > that.start
 }
