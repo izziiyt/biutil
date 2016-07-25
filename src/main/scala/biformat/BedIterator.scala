@@ -26,6 +26,12 @@ object BedIterator {
     override def hasNext: Boolean = it.hasNext
   }
 
+  /**
+    *
+    * @param bit1 filtered with bit2
+    * @param bit2 filters bit1
+    * @return bit1 filtered with bit2
+    */
   protected def intersection(bit1: BedIterator, bit2: BedIterator): BedIterator =
     new BedIterator with GenBlockIterator[BedLine]{
 
@@ -129,7 +135,8 @@ object BedIterator {
 
     //def hasOverlap(that:BedLine): Boolean = this.chr == that.chr && this.start < that.end && this.end > that.start
     def intersection(that:BedLine): BedLine = {
-        BedLine(this.chr, max(this.start, that.start), min(this.end, that.end))
+      BedLine(chr, max(this.start, that.start), min(this.end, that.end), name, score, strand,
+      thickStart, thickEnd, itemRgb, blockCount, blockSize, blockStarts)
     }
     def union(that:BedLine): BedLine = {
       BedLine(this.chr, min(this.start, that.start), max(this.end, that.end))
