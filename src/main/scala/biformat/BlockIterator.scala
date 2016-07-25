@@ -74,15 +74,10 @@ object BlockIterator {
   }
 
   trait FilteredBlockIterator[T1 <: Block,T2 <: Block] extends GenBlockIterator[T1]{
-    println("hoge")
     val wit: BlockIterator[T1]
     val bit: BlockIterator[T2]
-    println("huga")
-    if(bit.isEmpty) println("lkajsdh")
-    if(wit.isEmpty) println("lkajsdh")
     protected var wigBuf: Option[T1] = if (wit.hasNext) Some(wit.next()) else None
     protected var bedBuf: Option[T2] = if (bit.hasNext) Some(bit.next()) else None
-    println("yes")
     protected def gen(): Option[T1] = {
       @tailrec
       def f(wigop: Option[T1], bedop: Option[T2]): (Option[T1], Option[T1], Option[T2]) = {
