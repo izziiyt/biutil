@@ -1,5 +1,6 @@
 package biformat
 
+import scala.annotation.tailrec
 /**
   * Bioinformatics format-managing interface extends Iterator.
   */
@@ -8,14 +9,17 @@ trait BlockIterator[T <: Block] extends Iterator[T] {
 
   /**
     * appends adjacent [[Block]] as long as [[Block.length]] is uncer maxSize
+    *
     * @param maxSize
     * @param _its
     * @return shortened BlockIterator
     */
-  protected def merged(maxSize: Int, _its: BlockIterator[T]): MergedIterator[T]
+  //protected def merged(maxSize: Int, _its: BlockIterator[T]): MergedIterator[T]
+  //protected def filtered(_its: BlockIterator[T]): MergedIterator[T]
   def merged(maxSize: Int): MergedIterator[T]
 
   protected def append(x: T, y: T): T
+
 }
 
 object BlockIterator {
@@ -68,6 +72,41 @@ object BlockIterator {
       }
     }
   }
+
+  trait FilteredBlockIterator[T1 <: Block,T2 <: Block] extends GenBlockIterator[T1]{
+    println("hoge")
+    val wit: BlockIterator[T1]
+    val bit: BlockIterator[T2]
+    println("huga")
+    if(bit.isEmpty) println("lkajsdh")
+    if(wit.isEmpty) println("lkajsdh")
+    protected var wigBuf: Option[T1] = if (wit.hasNext) Some(wit.next()) else None
+    protected var bedBuf: Option[T2] = if (bit.hasNext) Some(bit.next()) else None
+    println("yes")
+    protected def gen(): Option[T1] = {
+      @tailrec
+      def f(wigop: Option[T1], bedop: Option[T2]): (Option[T1], Option[T1], Option[T2]) = {
+        def nextb() = if (bit.hasNext) Some(bit.next()) else None
+        def nextw() = if (wit.hasNext) Some(wit.next()) else None
+        (wigop, bedop) match {
+          case (Some(wig), Some(bed)) =>
+            if (wig.chr != bed.chr) f(wigop, nextb())
+            else wig.interSection(bed) match {
+              case None =>
+                if (wig.end <= bed.start) f(nextw(), bedop) else f(wigop, nextb())
+              case tmp =>
+                if (bed.end < wig.end) (tmp, wigop, nextb()) else (tmp, nextw(), bedop)
+            }
+          case (None, _) | (_, None) => (None, None, None)
+        }
+      }
+      val (v1, v2, v3) = f(wigBuf, bedBuf)
+      wigBuf = v2
+      bedBuf = v3
+      v1
+    }
+  }
+
 }
 
 /**
@@ -96,6 +135,8 @@ trait Block extends Ordered[Block]{
     }
     else tmp1
   }
+
+  def interSection[T <: Block](y: T): Option[this.type]
 
   def hasIntersection(that: Block): Boolean =
     this.chr == that.chr && this.start < that.end && this.end > that.start

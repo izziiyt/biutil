@@ -1,10 +1,8 @@
 package biformat
 
 import biformat.BedIterator.BedLine
-import biformat.BlockIterator.{GenBlockIterator, MergedIterator}
+import biformat.BlockIterator.{GenBlockIterator, MergedIterator,FilteredBlockIterator}
 import breeze.linalg.{max, min}
-
-import scala.annotation.tailrec
 import scala.io.Source
 
 abstract class BedIterator extends BlockIterator[BedLine]{
@@ -14,7 +12,10 @@ abstract class BedIterator extends BlockIterator[BedLine]{
     val its = _its
   }
   def merged(_maxSize: Int) = merged(_maxSize, this)
-  def intersection(that: BedIterator): BedIterator = BedIterator.intersection(this, that)
+  def intersection(that: BedIterator): BedIterator = new BedIterator with FilteredBlockIterator[BedLine,BedLine]{
+    val bit = that
+    val wit = this
+  }
   def union(that: BedIterator): BedIterator = BedIterator.union(this, that)
 
 }
@@ -32,7 +33,7 @@ object BedIterator {
     * @param bit2 filters bit1
     * @return bit1 filtered with bit2
     */
-  protected def intersection(bit1: BedIterator, bit2: BedIterator): BedIterator =
+  /*protected def intersection(bit1: BedIterator, bit2: BedIterator): BedIterator =
     new BedIterator with GenBlockIterator[BedLine]{
 
       protected var b1Buf: Option[BedLine] = if (bit1.hasNext) Some(bit1.next()) else None
@@ -61,7 +62,7 @@ object BedIterator {
         b2Buf = v3
         v1
       }
-    }
+    }*/
 
   protected def union(bit1: BedIterator, bit2: BedIterator): BedIterator =
     new BedIterator with GenBlockIterator[BedLine]{
@@ -96,15 +97,15 @@ object BedIterator {
   def fromSource(s: Source, sep: String = DefaultSep) =
     new BedIterator with GenBlockIterator[BedLine] {
 
-    val lines = s.getLines()
+      val lines = s.getLines()
 
-    protected def gen(): Option[BedLine] = {
-      for(line <- lines; if !line.startsWith("#") && line.nonEmpty){
-        return Some(BedLine(line, DefaultSep))
+      protected def gen(): Option[BedLine] = {
+        for(line <- lines; if !line.startsWith("#") && line.nonEmpty){
+          return Some(BedLine(line, DefaultSep))
+        }
+        None
       }
-      None
     }
-  }
 
   /**
     *
@@ -133,10 +134,11 @@ object BedIterator {
       else tmp
     }
 
-    //def hasOverlap(that:BedLine): Boolean = this.chr == that.chr && this.start < that.end && this.end > that.start
-    def intersection(that:BedLine): BedLine = {
-      BedLine(chr, max(this.start, that.start), min(this.end, that.end), name, score, strand,
-      thickStart, thickEnd, itemRgb, blockCount, blockSize, blockStarts)
+    def interSection[T <: Block](that:T) = that match {
+      case BedLine(_, _start, _end, _,_,_,_,_,_,_,_,_) =>
+        Some(BedLine(chr, max(start, _start), min(end, _end), name, score, strand,
+          thickStart, thickEnd, itemRgb, blockCount, blockSize, blockStarts).asInstanceOf[this.type])
+      case _ => None
     }
     def union(that:BedLine): BedLine = {
       BedLine(this.chr, min(this.start, that.start), max(this.end, that.end))

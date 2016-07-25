@@ -31,6 +31,7 @@ object MafIterator {
     def chr = lines(target).subname
     require(lines.values.forall(_.length == length))
 
+    def interSection[T <: Block](that: T) = throw new UnsupportedOperationException
     def start = lines(target).start
     def end = lines(target).end
 

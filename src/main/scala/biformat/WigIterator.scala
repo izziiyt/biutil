@@ -1,7 +1,7 @@
 package biformat
 
 import biformat.BedIterator.BedLine
-import biformat.BlockIterator.{GenBlockIterator, MergedIterator}
+import biformat.BlockIterator.{FilteredBlockIterator, GenBlockIterator, MergedIterator}
 import biformat.WigIterator.{FixedStep, VariableStep, WigUnit}
 
 import scala.annotation.tailrec
@@ -9,7 +9,7 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.io.Source
 
 abstract class WigIterator extends BlockIterator[WigUnit]{
-
+  import BedIterator._
   /**
     * non safe opperation
     *
@@ -26,37 +26,12 @@ abstract class WigIterator extends BlockIterator[WigUnit]{
 
   def merged(_maxSize: Int) = merged(_maxSize,this)
 
-  def filterWithBed(bit: Iterator[BedLine]): WigIterator = filterWithBed(bit, this)
-  protected def filterWithBed(bit: Iterator[BedLine], wit: WigIterator): WigIterator =
-    new WigIterator with GenBlockIterator[WigUnit]{
+  def filterWithBed(_bit: BedIterator, _wit: WigIterator = this) = new {
+    val bit = _bit
+    val wit = _wit
+  } with WigIterator with FilteredBlockIterator[WigUnit, BedLine]
 
-    protected var bedBuf: Option[BedLine] = if (bit.hasNext) Some(bit.next()) else None
-
-    protected var wigBuf: Option[WigUnit] = if (wit.hasNext) Some(wit.next()) else None
-
-    protected def gen(): Option[WigUnit] = {
-      @tailrec
-      def f(wigop: Option[WigUnit], bedop: Option[BedLine]): (Option[WigUnit], Option[WigUnit], Option[BedLine]) = {
-        def nextb() = if (bit.hasNext) Some(bit.next()) else None
-        def nextw() = if (wit.hasNext) Some(wit.next()) else None
-        (wigop, bedop) match {
-          case (Some(wig), Some(bed)) =>
-            if (wig.chr != bed.chr) f(wigop, nextb())
-            else wig.interSection(bed) match {
-              case None =>
-                if (wig.end <= bed.start) f(nextw(), bedop) else f(wigop, nextb())
-              case tmp =>
-                if (bed.end < wig.end) (tmp, wigop, nextb()) else (tmp, nextw(), bedop)
-            }
-          case (None, _) | (_, None) => (None, None, None)
-        }
-      }
-      val (v1, v2, v3) = f(wigBuf, bedBuf)
-      wigBuf = v2
-      bedBuf = v3
-      v1
-    }
-  }
+  def filterWithBed(_bed: BedIterator):WigIterator = filterWithBed(_bed,this)
 
   def hist(size: Int = 100, max: Double = 1.0): Array[Int] =  {
     val vec = Array.fill[Int](size)(0)
@@ -89,7 +64,6 @@ object WigIterator {
     def length = lines.length * span
     def marginalize(wing: Int): WigUnit
     def +(that: WigUnit): WigUnit
-    def interSection(bed: BedLine): Option[WigUnit]
     def toVariableStep: VariableStep
   }
 
@@ -147,20 +121,23 @@ object WigIterator {
       }
     }
 
-    def interSection(bed: BedLine): Option[VariableStep] = {
-      if (end <= bed.start || start >= bed.end || chr != bed.chr) None
-      else {
-        try {
-          Some(VariableStep(chr, span, lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end)))
-        }
-        catch{
-          case e:java.util.NoSuchElementException =>
-            e.printStackTrace()
-            None
-        }
+    def interSection[T <: Block](bed: T) = {
+      bed match {
+        case _:BedLine =>
+          if (end <= bed.start || start >= bed.end || chr != bed.chr) None
+          else {
+            try {
+              Some(VariableStep(chr, span, lines.dropWhile(_._1 < bed.start).takeWhile(_._1 < bed.end)).asInstanceOf[this.type])
+            }
+            catch{
+              case e:java.util.NoSuchElementException =>
+                e.printStackTrace()
+                None
+            }
+          }
+        case _ => None
       }
     }
-
   }
 
   object VariableStep {
@@ -213,8 +190,7 @@ object WigIterator {
         case _ => throw new UnsupportedOperationException
       }
 
-    def interSection(bed: BedLine): Option[FixedStep] =
-      throw new UnsupportedOperationException
+    def interSection[T <: Block](bed: T) = throw new UnsupportedOperationException
 
 
     def toVariableStep: VariableStep =
@@ -235,55 +211,55 @@ object WigIterator {
   def fromSource(s: Source, maxsize: Int = 2048, sep: String = DefaultSep) =
     new WigIterator with GenBlockIterator[WigUnit]{
 
-    protected val lines = s.getLines()
+      protected val lines = s.getLines()
 
-    protected var nextunit: WigUnit = null
+      protected var nextunit: WigUnit = null
 
-    protected def gen(): Option[WigUnit] = {
-      nextunit match {
-        case VariableStep(chr, span, _) =>
-          val buf = new ArrayBuffer[(Int, Double)]()
-          for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
-            p(0) match {
-              case "fixedStep" =>
-                nextunit = FixedStep(line)
-                if(buf.nonEmpty) return Some(VariableStep(chr, span, buf.toArray))
-              case "variableStep" =>
-                nextunit = VariableStep(line)
-                if(buf.nonEmpty) return Some(VariableStep(chr, span, buf.toArray))
-              case _ =>
-                buf += Tuple2(p(0).toInt, p(1).toDouble)
-                if(buf.length >= maxsize) return Some(VariableStep(chr, span, buf.toArray))
+      protected def gen(): Option[WigUnit] = {
+        nextunit match {
+          case VariableStep(chr, span, _) =>
+            val buf = new ArrayBuffer[(Int, Double)]()
+            for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
+              p(0) match {
+                case "fixedStep" =>
+                  nextunit = FixedStep(line)
+                  if(buf.nonEmpty) return Some(VariableStep(chr, span, buf.toArray))
+                case "variableStep" =>
+                  nextunit = VariableStep(line)
+                  if(buf.nonEmpty) return Some(VariableStep(chr, span, buf.toArray))
+                case _ =>
+                  buf += Tuple2(p(0).toInt, p(1).toDouble)
+                  if(buf.length >= maxsize) return Some(VariableStep(chr, span, buf.toArray))
+              }
             }
-          }
-          if (buf.nonEmpty) Some(VariableStep(chr, span, buf.toArray))
-          else None
-        case FixedStep(chr, start, step, span, _) =>
-          val buf = new ArrayBuffer[Double]()
-          for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
-            p(0) match {
-              case "fixedStep" =>
-                nextunit = FixedStep(line)
-                if(buf.nonEmpty) return Some(FixedStep(chr, start, step, span, buf.toArray))
-              case "variableStep" =>
-                nextunit = VariableStep(line)
-                if(buf.nonEmpty) return Some(FixedStep(chr, start, step, span, buf.toArray))
-              case _ =>
-                buf += p(0).toDouble
-                if(buf.length >= maxsize) return Some(FixedStep(chr, start, step, span, buf.toArray))
+            if (buf.nonEmpty) Some(VariableStep(chr, span, buf.toArray))
+            else None
+          case FixedStep(chr, start, step, span, _) =>
+            val buf = new ArrayBuffer[Double]()
+            for (line <- lines; if line.nonEmpty && !line.startsWith("#"); p = line.split(sep)) {
+              p(0) match {
+                case "fixedStep" =>
+                  nextunit = FixedStep(line)
+                  if(buf.nonEmpty) return Some(FixedStep(chr, start, step, span, buf.toArray))
+                case "variableStep" =>
+                  nextunit = VariableStep(line)
+                  if(buf.nonEmpty) return Some(FixedStep(chr, start, step, span, buf.toArray))
+                case _ =>
+                  buf += p(0).toDouble
+                  if(buf.length >= maxsize) return Some(FixedStep(chr, start, step, span, buf.toArray))
+              }
             }
-          }
-          if (buf.nonEmpty) Some(FixedStep(chr, start, step, span, buf.toArray))
-          else None
-        case _ =>
-          val line = lines.find(line => line.startsWith("fixed") || line.startsWith("variable"))
-          if(line.isEmpty) sys.error("Input file may not be biformat.maf.wig format.")
-          nextunit = line.get.split(sep)(0) match {
-            case "fixedStep" => FixedStep(line.get)
-            case "variableStep" => VariableStep(line.get)
-          }
-          gen()
+            if (buf.nonEmpty) Some(FixedStep(chr, start, step, span, buf.toArray))
+            else None
+          case _ =>
+            val line = lines.find(line => line.startsWith("fixed") || line.startsWith("variable"))
+            if(line.isEmpty) sys.error("Input file may not be biformat.maf.wig format.")
+            nextunit = line.get.split(sep)(0) match {
+              case "fixedStep" => FixedStep(line.get)
+              case "variableStep" => VariableStep(line.get)
+            }
+            gen()
+        }
       }
     }
-  }
 }
