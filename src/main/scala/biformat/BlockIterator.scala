@@ -85,7 +85,7 @@ object BlockIterator {
         def nextw() = if (wit.hasNext) Some(wit.next()) else None
         (wigop, bedop) match {
           case (Some(wig), Some(bed)) =>
-            if(wig.chr != bed.chr) {if(wig > bed) f(nextw(), bedop) else f(wigop, nextb())}
+            if(wig.chr != bed.chr) {if(wig < bed) f(nextw(), bedop) else f(wigop, nextb())}
             else wig.interSection(bed) match {
               case None =>
                 if (wig.end <= bed.start) f(nextw(), bedop) else f(wigop, nextb())
