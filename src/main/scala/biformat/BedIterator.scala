@@ -135,14 +135,16 @@ object BedIterator {
     }
 
     def interSection[T <: Block](that:T) = that match {
-      case BedLine(_, _start, _end, _,_,_,_,_,_,_,_,_) =>
+      case BedLine(_, _start, _end, _,_,_,_,_,_,_,_,_) if this.hasIntersection(that) =>
         Some(BedLine(chr, max(start, _start), min(end, _end), name, score, strand,
           thickStart, thickEnd, itemRgb, blockCount, blockSize, blockStarts).asInstanceOf[this.type])
       case _ => None
     }
+
     def union(that:BedLine): BedLine = {
       BedLine(this.chr, min(this.start, that.start), max(this.end, that.end))
     }
+
   }
 
 
