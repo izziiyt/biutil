@@ -34,5 +34,5 @@ scalacOptions ++= Seq(
 
 //target in Compile in doc := baseDirectory.value.getParentFile / "izziiyt.github.io/api/biutil/"
 
-apiURL := Some(url("https://github.com/izziiyt/izziiyt.github.io/scaladoc/biutil/api/"))
+apiURL := Some(url("https://github.com/izziiyt/izziiyt.github.io/scaladoc/biutil/2.11/"))
 
