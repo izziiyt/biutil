@@ -1,4 +1,4 @@
-#biutil (Scala-2.10/11)
+#biutil
 
 [![Build Status](https://travis-ci.org/izziiyt/biutil.svg?branch=master)](https://travis-ci.org/izziiyt/biutil)
 
@@ -6,7 +6,9 @@
 
 ###Packages
 
-[Scala doc API](http://izziiyt.github.io/biutil/api)
+[Scaladoc 2.11](http://izziiyt.github.io/scaladoc/biutil/2.11)
+
+[Scaladoc 2.10](http://izziiyt.github.io/scaladoc/biutil/2.10)
 
 ####alignment
 

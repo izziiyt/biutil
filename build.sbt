@@ -32,4 +32,7 @@ scalacOptions ++= Seq(
   "-language:implicitConversions"
 )
 
-target in Compile in doc := baseDirectory.value.getParentFile / "izziiyt.github.io/biutil/api"
+//target in Compile in doc := baseDirectory.value.getParentFile / "izziiyt.github.io/api/biutil/"
+
+apiURL := Some(url("https://github.com/izziiyt/izziiyt.github.io/scaladoc/biutil/api/"))
+
